@@ -1,0 +1,3 @@
+Experiment 009 evaluation requested.
+
+Use the frozen specification in research/experiment_009_spec.md and the committed implementation only. Do not retune tau, kappa, health logic, model settings, fault magnitudes, seed ranges, endpoints, or bootstrap rules after this request.
