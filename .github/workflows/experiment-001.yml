@@ -1,0 +1,46 @@
+name: Experiment 001
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'research/**'
+      - '.github/workflows/experiment-001.yml'
+  workflow_dispatch:
+    inputs:
+      run_evaluation:
+        description: 'Run frozen 200-seed evaluation and upload evidence artifact'
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+  evaluate:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_evaluation
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run frozen Experiment 001
+        run: python scripts/run_experiment_001.py
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-001-evidence
+          path: results/experiment_001/
+          if-no-files-found: error
