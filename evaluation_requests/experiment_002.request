@@ -1,0 +1,5 @@
+experiment: 002
+request: run frozen magnitude-duration response-surface evaluation
+spec: research/experiment_002_spec.md
+storage_amendment: research/experiment_002_storage_amendment.md
+requested_after_spec_freeze: true
