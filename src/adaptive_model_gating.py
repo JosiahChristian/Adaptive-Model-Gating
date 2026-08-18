@@ -51,14 +51,17 @@ def generate_gradual_drift_stream(seed,delta_a,ramp_duration):
 def initial_model(xs,ys): return ols_fit(xs[INITIAL_FIT_START:INITIAL_FIT_END+1],ys[INITIAL_FIT_START:INITIAL_FIT_END+1])
 def refit(xs,ys,t): return ols_fit(xs[t-REFIT_WINDOW+1:t+1],ys[t-REFIT_WINDOW+1:t+1])
 def run_strategy_on_stream(seed,condition_label,strategy,tau,xs,ys,a_values):
+    if strategy not in {"frozen","continuous","threshold","persistence"}: raise ValueError(strategy)
     model=initial_model(xs,ys); sq=[]; streak=0; rows=[]
     for t in range(INITIAL_FIT_END+1,N_STEPS+1):
         sb,ib=model.slope,model.intercept; yh=model.predict(xs[t]); err=ys[t]-yh; se=err*err; sq.append(se); rm=mean(sq[-ROLLING_WINDOW:]) if len(sq)>=ROLLING_WINDOW else None; adapt=False
         if strategy=="continuous": adapt=True
-        elif strategy=="threshold" and rm is not None: adapt=rm>tau
-        elif strategy=="persistence" and rm is not None:
-            streak=streak+1 if rm>tau else 0; adapt=streak>=PERSISTENCE_COUNT
-        elif strategy!="frozen": raise ValueError(strategy)
+        elif strategy=="threshold":
+            adapt=rm is not None and rm>tau
+        elif strategy=="persistence":
+            if rm is not None:
+                streak=streak+1 if rm>tau else 0
+                adapt=streak>=PERSISTENCE_COUNT
         if adapt:
             model=refit(xs,ys,t)
             if strategy=="persistence": streak=0
