@@ -2,3 +2,5 @@ experiment=003
 spec=research/experiment_003_spec.md
 evaluation_seeds=3000..3199
 requested_after_spec_and_implementation_tests
+retry_reason=workflow_yaml_syntax_only
+scientific_spec_unchanged=true
