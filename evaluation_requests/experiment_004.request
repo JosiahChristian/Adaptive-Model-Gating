@@ -1,0 +1,7 @@
+experiment=004
+spec=research/experiment_004_spec.md
+evaluation_seeds=4000..4199
+requested_after_spec_and_implementation_tests
+scientific_spec_unchanged=true
+structural_mismatch_family=quadratic
+learner_class=frozen_linear_ols
