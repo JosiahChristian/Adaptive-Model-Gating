@@ -39,6 +39,18 @@ The bounded conclusion is that the earlier **responsiveness-versus-conservatism 
 
 See `results/experiment_003/evidence_record.md` for run provenance, artifact digests, cell-level evidence, independent audit checks, and the full claim boundary.
 
+## Experiment 004 — structural model mismatch
+
+Experiment 004 prospectively replaced the post-event generating relation with a quadratic structural mismatch while keeping the adaptive learner linear. The true post-event system is `y_t = 1.5 x_t + gamma x_t^2 + epsilon_t`, with `gamma ∈ {0.25, 0.5, 1.0}` under both 20-step transient and persistent mismatch. The same gate parameters and linear OLS refit operator were retained without retuning, using 200 new seeds per cell.
+
+Persistence adapted less often during the true transient mismatch interval than threshold gating in **all three magnitudes**. The paired adaptation-rate differences were **-0.070**, **-0.050**, and **-0.050**, and all three prespecified 95% whole-seed bootstrap intervals excluded zero on the negative side.
+
+Under persistent structural mismatch, persistence sharply reduced repeated adaptation churn through `t=1200`: mean reductions relative to threshold were approximately **69.7%**, **68.8%**, and **67.5%** across increasing `gamma`. That computational conservatism again carried a prediction-loss cost. Persistence-minus-threshold mean loss over `t=401..600` was **+0.930**, **+4.246**, and **+14.444**, with all three paired intervals excluding zero on the positive side. The relative loss penalty increased from about **1.40%** to **5.77%** as mismatch magnitude increased.
+
+The bounded conclusion is that the **responsiveness-versus-conservatism phenomenon survives this specified structural misspecification**, and that under persistent mismatch persistence confirmation also acts as a substantial adaptation-rate limiter. It does not solve the model mismatch or establish general superiority: fewer repeated refits are purchased with worse predictive responsiveness.
+
+See `results/experiment_004/evidence_record.md` for run provenance, artifact digests, audit checks, cell-level results, and the full claim boundary.
+
 ## Evidence policy
 
 This repository is an experimental evidence base, not a manuscript or publication claim. Results, including negative or failed results, are preserved. Evaluation rules are frozen before test results are inspected. Claims remain limited to what committed artifacts support.
