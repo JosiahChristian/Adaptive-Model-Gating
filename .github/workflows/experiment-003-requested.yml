@@ -1,0 +1,44 @@
+name: Experiment 003 Requested Evaluation
+on:
+  push:
+    paths: ['evaluation_requests/experiment_003.request']
+permissions:
+  contents: read
+  issues: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m unittest discover -s tests -v
+  evaluate:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Run frozen Experiment 003
+        run: python scripts/run_experiment_003.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-003-evidence
+          path: results/experiment_003/
+          if-no-files-found: error
+      - name: Register completed evidence run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BODY=$(cat results/experiment_003/report.json)
+          gh issue create --title "Experiment 003 evidence run $GITHUB_RUN_ID" --body "Automated completed evidence pointer for Experiment 003.
+
+- run_id: $GITHUB_RUN_ID
+- head_sha: $GITHUB_SHA
+- artifact_name: experiment-003-evidence
+- status: completed
+
+\`\`\`json
+$BODY
+\`\`\`"
