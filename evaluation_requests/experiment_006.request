@@ -1,0 +1,5 @@
+experiment=006
+spec=research/experiment_006_spec.md
+evaluation_seeds=6000..6199
+requested_after_spec_implementation_tests_and_workflow
+scientific_spec_unchanged=true
