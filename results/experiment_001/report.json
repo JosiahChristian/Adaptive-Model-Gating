@@ -1,0 +1,22 @@
+{
+  "tau": 0.4749575582753968,
+  "evaluation_seeds": [1000, 1199],
+  "n_seeds_per_condition": 200,
+  "persistent_mean_loss": {
+    "frozen": 84.92151614740324,
+    "continuous": 56.67675177174851,
+    "threshold": 62.61675131928025,
+    "persistence": 63.91505222821736
+  },
+  "transient_adaptation_rate": {
+    "frozen": 0.0,
+    "continuous": 1.0,
+    "threshold": 0.395,
+    "persistence": 0.285
+  },
+  "persistence_minus_threshold_persistent_loss_mean_difference": 1.298300908937117,
+  "persistence_minus_threshold_persistent_loss_bootstrap_95_ci": [
+    1.012905461315102,
+    1.5877538523071109
+  ]
+}
