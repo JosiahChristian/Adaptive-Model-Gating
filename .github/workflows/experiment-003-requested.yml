@@ -1,25 +1,32 @@
 name: Experiment 003 Requested Evaluation
+
 on:
   push:
-    paths: ['evaluation_requests/experiment_003.request']
+    paths:
+      - evaluation_requests/experiment_003.request
+
 permissions:
   contents: read
   issues: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: {python-version: '3.12'}
+        with:
+          python-version: '3.12'
       - run: python -m unittest discover -s tests -v
+
   evaluate:
     needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: {python-version: '3.12'}
+        with:
+          python-version: '3.12'
       - name: Run frozen Experiment 003
         run: python scripts/run_experiment_003.py
       - uses: actions/upload-artifact@v4
@@ -31,14 +38,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          BODY=$(cat results/experiment_003/report.json)
-          gh issue create --title "Experiment 003 evidence run $GITHUB_RUN_ID" --body "Automated completed evidence pointer for Experiment 003.
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
 
-- run_id: $GITHUB_RUN_ID
-- head_sha: $GITHUB_SHA
-- artifact_name: experiment-003-evidence
-- status: completed
+          report = json.loads(Path('results/experiment_003/report.json').read_text())
+          body = f'''Automated completed evidence pointer for Experiment 003.
 
-\`\`\`json
-$BODY
-\`\`\`"
+          - run_id: {os.environ['GITHUB_RUN_ID']}
+          - head_sha: {os.environ['GITHUB_SHA']}
+          - artifact_name: experiment-003-evidence
+          - status: completed
+
+          ```json
+          {json.dumps(report, indent=2)}
+          ```
+          '''
+          Path('/tmp/experiment003_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 003 evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment003_issue.md
