@@ -27,6 +27,18 @@ Experiment 001 therefore shows a **responsiveness-versus-unnecessary-adaptation 
 
 See `results/experiment_001/evidence_record.md` for provenance, artifact digests, seed-level audit results, and current claim boundaries.
 
+## Experiment 003 — gradual persistent drift
+
+Experiment 003 prospectively extended the same frozen gate settings to 12 gradual persistent-drift cells: `delta_a ∈ {0.25, 0.5, 1.0}` crossed with ramp durations `{20, 50, 100, 200}`, using 200 new seeds per cell and no retuning.
+
+Persistence gating adapted during the ramp less often than the simple threshold gate in **11 of 12 cells** and tied it in the strongest, slowest cell, where both gates adapted during the ramp for every seed. The conservative shift therefore survived gradual drift, but it was not universal.
+
+That conservatism carried a consistent loss cost. Persistence had higher mean cumulative squared prediction loss over `t=401..800` in **all 12 cells**. Every prespecified paired whole-seed bootstrap interval for persistence-minus-threshold loss excluded zero on the positive side. The relative mean-loss penalty ranged from approximately **0.79% to 3.03%** of threshold loss across the frozen cells.
+
+The bounded conclusion is that the earlier **responsiveness-versus-conservatism tradeoff generalizes to the specified gradual persistent drifts** in this controlled linear system. Experiment 003 does not establish general superiority of persistence gating, and the threshold/persistence distinction can disappear at the during-ramp adaptation endpoint under sufficiently strong, slow drift.
+
+See `results/experiment_003/evidence_record.md` for run provenance, artifact digests, cell-level evidence, independent audit checks, and the full claim boundary.
+
 ## Evidence policy
 
 This repository is an experimental evidence base, not a manuscript or publication claim. Results, including negative or failed results, are preserved. Evaluation rules are frozen before test results are inspected. Claims remain limited to what committed artifacts support.
