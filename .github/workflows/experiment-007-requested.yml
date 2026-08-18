@@ -1,0 +1,60 @@
+name: Experiment 007 Requested Evaluation
+
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_007.request
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -v
+
+  evaluate:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run frozen Experiment 007
+        run: python scripts/run_experiment_007.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-007-evidence
+          path: results/experiment_007/
+          if-no-files-found: error
+      - name: Register completed evidence run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads(Path('results/experiment_007/report.json').read_text())
+          body = f'''Automated completed evidence pointer for Experiment 007.
+
+          - run_id: {os.environ['GITHUB_RUN_ID']}
+          - head_sha: {os.environ['GITHUB_SHA']}
+          - artifact_name: experiment-007-evidence
+          - status: completed
+
+          ```json
+          {json.dumps(report, indent=2)}
+          ```
+          '''
+          Path('/tmp/experiment007_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 007 evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment007_issue.md
