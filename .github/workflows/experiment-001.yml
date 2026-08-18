@@ -1,5 +1,10 @@
 name: Experiment 001
 
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
 on:
   push:
     paths:
@@ -44,3 +49,28 @@ jobs:
           name: experiment-001-evidence
           path: results/experiment_001/
           if-no-files-found: error
+      - name: Register evidence run for automated audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          HEAD_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          {
+            echo "Automated evidence pointer for Experiment 001."
+            echo
+            echo "- run_id: ${RUN_ID}"
+            echo "- run_attempt: ${RUN_ATTEMPT}"
+            echo "- head_sha: ${HEAD_SHA}"
+            echo "- artifact_name: experiment-001-evidence"
+            echo "- workflow: Experiment 001"
+            echo
+            echo '```json'
+            cat results/experiment_001/report.json
+            echo '```'
+          } > /tmp/evidence_issue.md
+          gh issue create \
+            --repo "${REPOSITORY}" \
+            --title "Experiment 001 evidence run ${RUN_ID}" \
+            --body-file /tmp/evidence_issue.md
