@@ -1,0 +1,68 @@
+name: Experiment 002
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/run_experiment_002.py'
+      - 'research/experiment_002*'
+      - '.github/workflows/experiment-002.yml'
+  workflow_dispatch:
+    inputs:
+      run_evaluation:
+        description: 'Run frozen Experiment 002 response-surface evaluation'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+  evaluate:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_evaluation
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run frozen Experiment 002
+        run: python scripts/run_experiment_002.py
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-002-evidence
+          path: results/experiment_002/
+          if-no-files-found: error
+      - name: Register evidence run for automated audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo 'Automated evidence pointer for Experiment 002.'
+            echo
+            echo "- run_id: ${{ github.run_id }}"
+            echo "- run_attempt: ${{ github.run_attempt }}"
+            echo "- head_sha: ${{ github.sha }}"
+            echo '- artifact_name: experiment-002-evidence'
+            echo '- workflow: Experiment 002'
+            echo
+            echo '```json'
+            cat results/experiment_002/report.json
+            echo '```'
+          } > /tmp/evidence_issue.md
+          gh issue create --title "Experiment 002 evidence run ${{ github.run_id }}" --body-file /tmp/evidence_issue.md
