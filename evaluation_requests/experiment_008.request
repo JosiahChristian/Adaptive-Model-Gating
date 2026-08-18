@@ -1,0 +1,8 @@
+Experiment 008 requested evaluation.
+
+Frozen specification: research/experiment_008_spec.md
+Evaluation runner: scripts/run_experiment_008.py
+Evaluation seeds: 8000..8199
+Health calibration seeds: 200..399
+
+Execute only through the committed request-triggered workflow after the complete repository test suite succeeds. Preserve the generated Experiment 008 evidence artifact and completed-run issue pointer.
