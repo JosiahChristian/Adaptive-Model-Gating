@@ -1,0 +1,17 @@
+# Experiment 010 evaluation request
+
+Execute the frozen Experiment 010 three-sensor fault-tolerant adaptation-gating evaluation exactly as specified in `research/experiment_010_spec.md` and implemented in the committed Experiment 010 runner.
+
+Prospective specification commit: `5d8774e7d512de829534ae26c9fc27624fac9efa`
+
+Required conditions:
+
+- run the complete repository unit-test suite first;
+- evaluate only after tests succeed;
+- use evaluation seeds `10000..10199`;
+- preserve triad calibration seeds `200..399` and do not use evaluation seeds for calibration;
+- preserve unchanged residual threshold/gate/refit parameters;
+- preserve all 9 frozen cells and 6 strategies;
+- preserve full audit traces for seeds `10000..10004`;
+- upload the complete Experiment 010 evidence artifact;
+- register a completed evidence pointer only after successful evaluation.
