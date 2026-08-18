@@ -10,7 +10,20 @@ permissions:
   issues: write
 
 jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Register requested run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "Experiment 002 requested run ${{ github.run_id }}" \
+            --body "run_id: ${{ github.run_id }}\nhead_sha: ${{ github.sha }}\nstatus: started\ntrigger: evaluation_requests/experiment_002.request"
+
   test:
+    needs: register
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,12 +49,12 @@ jobs:
           name: experiment-002-evidence
           path: results/experiment_002/
           if-no-files-found: error
-      - name: Register evidence run for automated audit
+      - name: Register completed evidence run
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           {
-            echo 'Automated evidence pointer for Experiment 002.'
+            echo 'Automated completed evidence pointer for Experiment 002.'
             echo
             echo "- run_id: ${{ github.run_id }}"
             echo "- run_attempt: ${{ github.run_attempt }}"
@@ -49,9 +62,10 @@ jobs:
             echo '- trigger: versioned evaluation request marker'
             echo '- artifact_name: experiment-002-evidence'
             echo '- workflow: Experiment 002 Requested Evaluation'
+            echo '- status: completed'
             echo
             echo '```json'
             cat results/experiment_002/report.json
             echo '```'
           } > /tmp/evidence_issue.md
-          gh issue create --title "Experiment 002 evidence run ${{ github.run_id }}" --body-file /tmp/evidence_issue.md
+          gh issue create --repo "${{ github.repository }}" --title "Experiment 002 evidence run ${{ github.run_id }}" --body-file /tmp/evidence_issue.md
