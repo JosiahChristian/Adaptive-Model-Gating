@@ -15,3 +15,5 @@ Required conditions:
 - preserve full audit traces for seeds `10000..10004`;
 - upload the complete Experiment 010 evidence artifact;
 - register a completed evidence pointer only after successful evaluation.
+
+Retry marker: 2026-08-18T21:21Z. This changes only the request trigger; the frozen scientific design and implementation remain unchanged.
