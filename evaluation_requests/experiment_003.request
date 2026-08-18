@@ -2,5 +2,7 @@ experiment=003
 spec=research/experiment_003_spec.md
 evaluation_seeds=3000..3199
 requested_after_spec_and_implementation_tests
-retry_reason=workflow_yaml_syntax_only
+retry_1_reason=workflow_yaml_syntax_only
+retry_2_reason=implementation_warmup_regression_exposed_by_pre_evaluation_tests
 scientific_spec_unchanged=true
+evaluation_not_started_on_failed_retries=true
