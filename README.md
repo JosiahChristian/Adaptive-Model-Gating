@@ -6,20 +6,30 @@ Evidence-first computational research on when an adaptive model should update in
 
 When transient and persistent disturbances initially produce similar prediction-error evidence, does requiring temporal persistence before model adaptation improve the tradeoff between unnecessary adaptation and delayed response to genuine persistent drift?
 
-## Current scope
+## Experiment 001 — current evidence
 
-The first study uses a controlled linear dynamical regression system with known ground truth. It compares four strategies under stable, transient-change, and persistent-change conditions:
+The first study uses a controlled linear dynamical regression system with known ground truth and compares four strategies:
 
 - **B0 — Frozen:** no post-training adaptation.
 - **B1 — Continuous:** refit after every eligible observation.
 - **B2 — Threshold gate:** adapt when a calibrated rolling prediction-loss threshold is exceeded.
 - **G — Persistence-aware gate:** use the same loss statistic and threshold as B2, but require sustained threshold exceedance before adaptation.
 
-The purpose of the initial experiment is to isolate the adaptation decision. All adaptive strategies therefore use the same model-refitting operator.
+The frozen evaluation used 200 independent simulation seeds per condition. Transient and persistent changes were generated identically for their first 20 post-event observations, so future event duration was not available to the gate during matched onset.
+
+Relative to the simple threshold gate, persistence confirmation reduced the transient-event adaptation rate from **0.395 to 0.285**. The paired difference was **-0.110**, with a 95% whole-seed bootstrap interval of approximately **[-0.155, -0.070]**.
+
+That reduction came with slower response to persistent drift. Mean persistent-condition cumulative squared loss over the frozen `t=401..600` horizon was **62.62** for the threshold gate and **63.92** for the persistence gate. The persistence-minus-threshold difference was **+1.298**, with a 95% paired whole-seed bootstrap interval approximately **[+1.03, +1.59]**.
+
+Continuous adaptation had the lowest persistent-drift loss (**56.68**) but, by construction, adapted throughout every transient stream. The frozen model avoided adaptation but had substantially higher persistent-drift loss (**84.92**).
+
+Experiment 001 therefore shows a **responsiveness-versus-unnecessary-adaptation tradeoff**, not general superiority of persistence gating. Long-horizon false-alarm accumulation also remains important: at least one post-event adaptation occurred in about 78% of stable threshold-gate streams and 58.5% of stable persistence-gate streams.
+
+See `results/experiment_001/evidence_record.md` for provenance, artifact digests, seed-level audit results, and current claim boundaries.
 
 ## Evidence policy
 
-This repository is an experimental evidence base, not a manuscript or publication claim. Results, including negative or failed results, will be preserved. Evaluation rules are frozen before test results are inspected. Claims will remain limited to what the committed artifacts support.
+This repository is an experimental evidence base, not a manuscript or publication claim. Results, including negative or failed results, are preserved. Evaluation rules are frozen before test results are inspected. Claims remain limited to what committed artifacts support.
 
 ## Decision-time boundary
 
