@@ -19,3 +19,5 @@ Required conditions:
 Retry marker: 2026-08-18T21:21Z. This changes only the request trigger; the frozen scientific design and implementation remain unchanged.
 
 Execution-repair marker: 2026-08-19T02:31Z. The evaluation is now sharded across the same nine frozen cells and merged deterministically; no scientific rule, seed, strategy, threshold, hypothesis, contrast, or bootstrap rule is changed.
+
+Serialization-fix marker: 2026-08-19T03:22Z. Audit CSV writing now uses the union of heterogeneous diagnostic fields across strategies; no scientific computation or inference rule changed.
