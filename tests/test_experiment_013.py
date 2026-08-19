@@ -20,10 +20,11 @@ class Experiment013Tests(unittest.TestCase):
   vals=calibrate_anchor_c_thresholds();self.assertEqual(len(vals),3);self.assertTrue(all(v>0 for v in vals))
  def test_provenance_collapses_ab_vote(self):
   tau=calibrate_tau();k=calibrate_kappa();k3=calibrate_kappa3();la=calibrate_lambda_anchor();lb,lab=calibrate_dual_anchor_thresholds();lc,lac,lbc=calibrate_anchor_c_thresholds();rows=run_experiment_013_strategy(13000,'drift_g1_common_fault',1.0,'provenance_aware_quorum',tau,k,k3,la,lb,lc,lab,lac,lbc);self.assertTrue(any(r['raw_mismatch_votes']>=2 and r['provenance_mismatch_votes']==1 for r in rows))
- def test_legacy_comparator_compatibility_surface(self):
+ def test_legacy_comparator_and_summary_surface(self):
   s=generate_experiment_013_stream(13000,'healthy',0.0)
   for key in ('x_ref','reference_unit_noise','true_sigma_x','ref_fault_unit_noise','primary_fault_sigma','ref1_fault_sigma','common_sigma'): self.assertIn(key,s)
   tau=calibrate_tau();k=calibrate_kappa();k3=calibrate_kappa3();la=calibrate_lambda_anchor();lb,lab=calibrate_dual_anchor_thresholds();lc,lac,lbc=calibrate_anchor_c_thresholds()
-  for strategy in ('health_persistence','triad_persistence'):
+  for strategy in ('frozen','health_persistence','triad_persistence'):
    rows=run_experiment_013_strategy(13000,'healthy',0.0,strategy,tau,k,k3,la,lb,lc,lab,lac,lbc);self.assertEqual(len(rows),900)
+   for key in ('latent_input_sq_error','x_true','x_primary','anchor_c_mismatch','raw_mismatch_votes','provenance_mismatch_votes','independent_veto'): self.assertIn(key,rows[0])
 if __name__=='__main__':unittest.main()
