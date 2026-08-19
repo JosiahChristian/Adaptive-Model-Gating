@@ -18,8 +18,9 @@ class Experiment013Tests(unittest.TestCase):
   a=generate_experiment_013_stream(13000,'drift_g1_common_fault',.5);b=generate_experiment_013_stream(13000,'drift_misdeclared_g1_fault',.5);self.assertEqual(a['z'],b['z']);self.assertEqual(a['z_b'],b['z_b'])
  def test_c_calibration_is_healthy_only(self):
   vals=calibrate_anchor_c_thresholds();self.assertEqual(len(vals),3);self.assertTrue(all(v>0 for v in vals))
- def test_provenance_collapses_ab_vote(self):
-  tau=calibrate_tau();k=calibrate_kappa();k3=calibrate_kappa3();la=calibrate_lambda_anchor();lb,lab=calibrate_dual_anchor_thresholds();lc,lac,lbc=calibrate_anchor_c_thresholds();rows=run_experiment_013_strategy(13000,'drift_g1_common_fault',1.0,'provenance_aware_quorum',tau,k,k3,la,lb,lc,lab,lac,lbc);self.assertTrue(any(r['raw_mismatch_votes']>=2 and r['provenance_mismatch_votes']==1 for r in rows))
+ def test_provenance_collapses_ab_vote_and_naive_counts_pair(self):
+  tau=calibrate_tau();k=calibrate_kappa();k3=calibrate_kappa3();la=calibrate_lambda_anchor();lb,lab=calibrate_dual_anchor_thresholds();lc,lac,lbc=calibrate_anchor_c_thresholds();p=run_experiment_013_strategy(13000,'drift_g1_common_fault',1.0,'provenance_aware_quorum',tau,k,k3,la,lb,lc,lab,lac,lbc);n=run_experiment_013_strategy(13000,'drift_g1_common_fault',1.0,'naive_three_anchor_quorum',tau,k,k3,la,lb,lc,lab,lac,lbc)
+  self.assertTrue(any(r['raw_mismatch_votes']>=2 and r['provenance_mismatch_votes']==1 and r['raw_cross_consistent'] and not r['provenance_cross_consistent'] for r in p));self.assertGreater(sum(r['common_mode_suspect'] for r in n),sum(r['common_mode_suspect'] for r in p))
  def test_legacy_comparator_and_summary_surface(self):
   s=generate_experiment_013_stream(13000,'healthy',0.0)
   for key in ('x_ref','reference_unit_noise','true_sigma_x','ref_fault_unit_noise','primary_fault_sigma','ref1_fault_sigma','common_sigma'): self.assertIn(key,s)
