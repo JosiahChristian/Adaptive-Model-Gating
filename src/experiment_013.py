@@ -11,18 +11,21 @@ FAMILIES={'healthy','drift','common_mode','primary_fault','drift_g1_common_fault
 
 def generate_experiment_013_stream(seed,family,magnitude):
  if family not in FAMILIES: raise ValueError(family)
- rng=Random(seed); keys=('x_true','x_primary','x_r1','x_r2','z','z_b','z_c','y','a','physical_epsilon','r1_unit_noise','r2_unit_noise','anchor_unit_noise','anchor_b_unit_noise','anchor_c_unit_noise','common_unit_noise','primary_unit_noise','g1_fault_unit_noise','g2_fault_unit_noise')
+ rng=Random(seed)
+ keys=('x_true','x_primary','x_r1','x_r2','z','z_b','z_c','y','a','physical_epsilon','r1_unit_noise','r2_unit_noise','anchor_unit_noise','anchor_b_unit_noise','anchor_c_unit_noise','common_unit_noise','primary_unit_noise','g1_fault_unit_noise','g2_fault_unit_noise','true_sigma_x','ref_fault_unit_noise','primary_fault_sigma','ref1_fault_sigma','common_sigma')
+ random_keys=('physical_epsilon','r1_unit_noise','r2_unit_noise','anchor_unit_noise','anchor_b_unit_noise','anchor_c_unit_noise','common_unit_noise','primary_unit_noise','g1_fault_unit_noise','g2_fault_unit_noise')
  s={k:[0.0]*(N_STEPS+1) for k in keys};s['a']=[BASELINE_A]*(N_STEPS+1)
  for t in range(1,N_STEPS+1):
-  s['x_true'][t]=.8*s['x_true'][t-1]+rng.gauss(0,.5);s['physical_epsilon'][t]=rng.gauss(0,.5)
-  for k in keys[9:]: s[k][t]=rng.gauss(0,1)
+  s['x_true'][t]=.8*s['x_true'][t-1]+rng.gauss(0,.5)
+  for k in random_keys: s[k][t]=rng.gauss(0,.5) if k=='physical_epsilon' else rng.gauss(0,1)
   xt=s['x_true'][t];s['x_primary'][t]=xt;s['x_r1'][t]=xt+SIGMA_REF*s['r1_unit_noise'][t];s['x_r2'][t]=xt+SIGMA_REF*s['r2_unit_noise'][t]
   s['z'][t]=BETA_ANCHOR*xt+SIGMA_ANCHOR*s['anchor_unit_noise'][t];s['z_b'][t]=BETA_ANCHOR*xt+SIGMA_ANCHOR*s['anchor_b_unit_noise'][t];s['z_c'][t]=BETA_ANCHOR*xt+SIGMA_ANCHOR*s['anchor_c_unit_noise'][t]
   if t>=EVENT_T:
    if family=='drift': s['a'][t]=BASELINE_A+magnitude
    elif family=='common_mode':
-    q=magnitude*s['common_unit_noise'][t];s['x_primary'][t]+=q;s['x_r1'][t]+=q;s['x_r2'][t]+=q
-   elif family=='primary_fault': s['x_primary'][t]+=magnitude*s['primary_unit_noise'][t]
+    q=magnitude*s['common_unit_noise'][t];s['x_primary'][t]+=q;s['x_r1'][t]+=q;s['x_r2'][t]+=q;s['true_sigma_x'][t]=magnitude;s['common_sigma'][t]=magnitude
+   elif family=='primary_fault':
+    s['x_primary'][t]+=magnitude*s['primary_unit_noise'][t];s['true_sigma_x'][t]=magnitude;s['primary_fault_sigma'][t]=magnitude
    elif family in ('drift_g1_common_fault','drift_g2_fault','drift_misdeclared_g1_fault','drift_all_aux_fault'):
     s['a'][t]=BASELINE_A+magnitude
     if family in ('drift_g1_common_fault','drift_misdeclared_g1_fault','drift_all_aux_fault'):
@@ -70,10 +73,8 @@ def run_quorum(seed,label,tau,k3,la,lb,lc,lab,lac,lbc,stream,family,provenance):
  return rows
 
 def run_experiment_013_strategy(seed,family,magnitude,strategy,tau,kappa,k3,la,lb,lc,lab,lac,lbc):
- from experiment_012 import run_experiment_012_strategy
  stream=generate_experiment_013_stream(seed,family,magnitude);label=f'experiment013_{family}_{magnitude:.2f}'
  if strategy in ('naive_three_anchor_quorum','provenance_aware_quorum'): return run_quorum(seed,label,tau,k3,la,lb,lc,lab,lac,lbc,stream,family,strategy=='provenance_aware_quorum')
- # Legacy algorithms run on the exact Experiment-013 stream.
  if strategy=='independent_persistence': rows=run_independent_persistence_on_stream(seed,label,tau,k3,la,stream)
  elif strategy=='triad_persistence': rows=run_triad_persistence_on_stream(seed,label,tau,k3,stream)
  elif strategy=='health_persistence': rows=run_health_persistence_on_stream(seed,label,tau,kappa,stream)
