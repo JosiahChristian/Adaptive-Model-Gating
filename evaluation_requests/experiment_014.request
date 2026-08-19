@@ -1,0 +1,4 @@
+Experiment 014 requested after prospective freeze and post-freeze implementation.
+Frozen specification: research/experiment_014_spec.md
+Execution safeguards: research/execution_contract.md
+Run the complete unit-test-and-smoke-gated 22-cell sharded evaluation once.
