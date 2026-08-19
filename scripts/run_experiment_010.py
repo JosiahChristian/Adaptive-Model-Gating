@@ -21,8 +21,17 @@ AUDIT = set(range(10000, 10005))
 
 def write_csv(path, rows):
     path.parent.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        raise ValueError(f"Cannot write empty CSV: {path}")
+    fieldnames = []
+    seen = set()
+    for row in rows:
+        for key in row:
+            if key not in seen:
+                seen.add(key)
+                fieldnames.append(key)
     with path.open("w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=rows[0].keys())
+        w = csv.DictWriter(f, fieldnames=fieldnames)
         w.writeheader()
         w.writerows(rows)
 
