@@ -23,7 +23,7 @@ def generate_experiment_011_stream(seed, family, magnitude):
     rng = Random(seed)
     keys = ("x_true", "x_primary", "x_r1", "x_r2", "z", "y", "a", "physical_epsilon",
             "r1_unit_noise", "r2_unit_noise", "anchor_unit_noise", "common_unit_noise",
-            "primary_unit_noise", "anchor_fault_unit_noise")
+            "primary_unit_noise", "anchor_fault_unit_noise", "true_sigma_x")
     s = {k: [0.0] * (N_STEPS + 1) for k in keys}
     s["a"] = [BASELINE_A] * (N_STEPS + 1)
     for t in range(1, N_STEPS + 1):
@@ -48,13 +48,16 @@ def generate_experiment_011_stream(seed, family, magnitude):
                 s["x_primary"][t] += shared
                 s["x_r1"][t] += shared
                 s["x_r2"][t] += shared
+                s["true_sigma_x"][t] = magnitude
             elif family == "primary_fault":
                 s["x_primary"][t] += magnitude * s["primary_unit_noise"][t]
+                s["true_sigma_x"][t] = magnitude
             elif family == "drift_anchor_fault":
                 s["a"][t] = BASELINE_A + magnitude
                 s["z"][t] += BETA_ANCHOR * magnitude * s["anchor_fault_unit_noise"][t]
         s["y"][t] = s["a"][t] * xt + s["physical_epsilon"][t]
     s["x_ref"] = s["x_r1"]
+    s["reference_unit_noise"] = s["r1_unit_noise"]
     return s
 
 
