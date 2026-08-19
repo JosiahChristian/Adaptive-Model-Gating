@@ -19,16 +19,70 @@ jobs:
           python-version: '3.12'
       - run: python -m unittest discover -s tests -v
 
-  evaluate:
+  evaluate-shards:
     needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        include:
+          - family: primary_fault
+            magnitude: '0.25'
+            label: primary_fault_0.25
+          - family: primary_fault
+            magnitude: '0.5'
+            label: primary_fault_0.50
+          - family: primary_fault
+            magnitude: '1.0'
+            label: primary_fault_1.00
+          - family: drift_reference_fault
+            magnitude: '0.25'
+            label: drift_reference_fault_0.25
+          - family: drift_reference_fault
+            magnitude: '0.5'
+            label: drift_reference_fault_0.50
+          - family: drift_reference_fault
+            magnitude: '1.0'
+            label: drift_reference_fault_1.00
+          - family: common_mode
+            magnitude: '0.25'
+            label: common_mode_0.25
+          - family: common_mode
+            magnitude: '0.5'
+            label: common_mode_0.50
+          - family: common_mode
+            magnitude: '1.0'
+            label: common_mode_1.00
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run frozen Experiment 010 cell
+        env:
+          EXPERIMENT_010_FAMILY: ${{ matrix.family }}
+          EXPERIMENT_010_MAGNITUDE: ${{ matrix.magnitude }}
+        run: python scripts/run_experiment_010_shard.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.label }}
+          path: results/experiment_010_shards/${{ matrix.label }}/
+          if-no-files-found: error
+
+  evaluate:
+    needs: evaluate-shards
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Run frozen Experiment 010
-        run: python scripts/run_experiment_010.py
+      - uses: actions/download-artifact@v4
+        with:
+          path: results/experiment_010_shards
+      - name: Merge frozen Experiment 010 shards
+        run: python scripts/merge_experiment_010_shards.py
       - uses: actions/upload-artifact@v4
         with:
           name: experiment-010-evidence
@@ -50,6 +104,7 @@ jobs:
           - head_sha: {os.environ['GITHUB_SHA']}
           - artifact_name: experiment-010-evidence
           - status: completed
+          - execution: sharded across nine frozen cells; scientific specification unchanged
 
           ```json
           {json.dumps(report, indent=2)}
