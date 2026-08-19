@@ -1,0 +1,75 @@
+name: Experiment 012 Requested Evaluation
+on:
+  push:
+    paths: [evaluation_requests/experiment_012.request]
+permissions: {contents: read, issues: write}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m unittest discover -s tests -v
+  evaluate-shards:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 19
+      matrix:
+        include:
+          - {family: healthy, magnitude: '0.0', label: healthy_0.00}
+          - {family: drift, magnitude: '0.25', label: drift_0.25}
+          - {family: drift, magnitude: '0.5', label: drift_0.50}
+          - {family: drift, magnitude: '1.0', label: drift_1.00}
+          - {family: common_mode, magnitude: '0.25', label: common_mode_0.25}
+          - {family: common_mode, magnitude: '0.5', label: common_mode_0.50}
+          - {family: common_mode, magnitude: '1.0', label: common_mode_1.00}
+          - {family: primary_fault, magnitude: '0.25', label: primary_fault_0.25}
+          - {family: primary_fault, magnitude: '0.5', label: primary_fault_0.50}
+          - {family: primary_fault, magnitude: '1.0', label: primary_fault_1.00}
+          - {family: drift_anchor_a_fault, magnitude: '0.25', label: drift_anchor_a_fault_0.25}
+          - {family: drift_anchor_a_fault, magnitude: '0.5', label: drift_anchor_a_fault_0.50}
+          - {family: drift_anchor_a_fault, magnitude: '1.0', label: drift_anchor_a_fault_1.00}
+          - {family: drift_anchor_b_fault, magnitude: '0.25', label: drift_anchor_b_fault_0.25}
+          - {family: drift_anchor_b_fault, magnitude: '0.5', label: drift_anchor_b_fault_0.50}
+          - {family: drift_anchor_b_fault, magnitude: '1.0', label: drift_anchor_b_fault_1.00}
+          - {family: drift_dual_anchor_fault, magnitude: '0.25', label: drift_dual_anchor_fault_0.25}
+          - {family: drift_dual_anchor_fault, magnitude: '0.5', label: drift_dual_anchor_fault_0.50}
+          - {family: drift_dual_anchor_fault, magnitude: '1.0', label: drift_dual_anchor_fault_1.00}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Run frozen Experiment 012 cell
+        env:
+          EXPERIMENT_012_FAMILY: ${{ matrix.family }}
+          EXPERIMENT_012_MAGNITUDE: ${{ matrix.magnitude }}
+          EXPERIMENT_012_LABEL: ${{ matrix.label }}
+        run: python scripts/run_experiment_012_shard.py
+      - uses: actions/upload-artifact@v4
+        with: {name: '${{ matrix.label }}', path: 'results/experiment_012_shards/${{ matrix.label }}/', if-no-files-found: error}
+  evaluate:
+    needs: evaluate-shards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with: {path: results/experiment_012_shards}
+      - run: python scripts/merge_experiment_012_shards.py
+      - uses: actions/upload-artifact@v4
+        with: {name: experiment-012-evidence, path: results/experiment_012/, if-no-files-found: error}
+      - name: Register completed evidence run
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          report=json.loads(Path('results/experiment_012/report.json').read_text())
+          body=f"Automated completed evidence pointer for Experiment 012.\n\n- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n- artifact_name: experiment-012-evidence\n- status: completed\n- execution: sharded across nineteen frozen cells\n\n```json\n{json.dumps(report,indent=2)}\n```\n"
+          Path('/tmp/experiment012_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 012 evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment012_issue.md
