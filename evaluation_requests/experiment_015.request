@@ -1,0 +1,4 @@
+Experiment 015 requested after prospective freeze and post-freeze implementation.
+Frozen specification: research/experiment_015_spec.md
+Run the complete unit-test-and-smoke-gated 22-cell sharded evaluation once.
+Evaluation seeds: 15000..15199. Do not retune frozen scientific parameters after evaluation begins.
