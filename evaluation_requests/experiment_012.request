@@ -1,0 +1,8 @@
+Experiment 012 requested evaluation.
+Frozen scientific specification: research/experiment_012_spec.md
+Prospective freeze commit: d0aac40cd0116a113c544067b8befee3c0e7ba7b
+Evaluation seeds: 12000..12199
+Calibration seeds: anchor A inherited 600..799; dual-anchor thresholds 800..999
+Bootstrap seed: 12012
+Execution must remain unit-test-gated and sharded across exactly 19 frozen cells.
+No scientific retuning is permitted after this request.
