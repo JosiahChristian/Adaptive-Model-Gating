@@ -58,7 +58,9 @@ def _annotate(rows,stream,k3,la,lb,lc,lab,lac,lbc,family):
  for r in rows:
   t=r['t'];m={x:int(h[x][t] is not None and h[x][t]>l) for x,l in [('a',la),('b',lb),('c',lc)]};dis={x:int(h[x][t] is not None and h[x][t]>l) for x,l in [('ab',lab),('ac',lac),('bc',lbc)]};consistent=int(all(ph[k][t] is not None and ph[k][t]<=k3 for k in ph));active={groups[x] for x in 'abc' if m[x]};cross_ok=int((m['a'] and m['c'] and not dis['ac']) or (m['b'] and m['c'] and not dis['bc']) or (groups['a']!=groups['b'] and m['a'] and m['b'] and not dis['ab']))
   r.update({'z_c':stream['z_c'][t],'anchor_mismatch':m['a'],'anchor_b_mismatch':m['b'],'anchor_c_mismatch':m['c'],'anchor_ab_disagreement':dis['ab'],'anchor_ac_disagreement':dis['ac'],'anchor_bc_disagreement':dis['bc'],'raw_mismatch_votes':sum(m.values()),'provenance_mismatch_votes':len(active),'declared_group_a':groups['a'],'declared_group_b':groups['b'],'declared_group_c':groups['c'],'triad_consistent':consistent,'provenance_cross_consistent':cross_ok})
-  r.setdefault('independent_veto',0)
+  for key in ('x_true','x_primary','x_r1','x_r2','z','z_b','physical_epsilon','r1_unit_noise','r2_unit_noise','anchor_unit_noise','anchor_b_unit_noise','anchor_c_unit_noise','common_unit_noise','primary_unit_noise','g1_fault_unit_noise','g2_fault_unit_noise'):
+   r.setdefault(key,stream[key][t])
+  latent_hat=r['slope_before']*stream['x_true'][t]+r['intercept_before'];r.setdefault('latent_input_sq_error',(stream['y'][t]-latent_hat)**2);r.setdefault('common_mode_suspect',0);r.setdefault('independent_veto',0)
  return rows
 
 def run_quorum(seed,label,tau,k3,la,lb,lc,lab,lac,lbc,stream,family,provenance):
