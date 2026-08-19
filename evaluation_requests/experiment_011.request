@@ -2,4 +2,5 @@ Experiment 011 frozen evaluation requested.
 Specification: research/experiment_011_spec.md
 Evaluation seeds: 11000..11199
 Do not retune frozen scientific parameters after evaluation begins.
-Trigger marker: 2026-08-19T04:34Z
+Trigger marker: 2026-08-19T04:49Z
+Execution repair retrigger after compatibility alias fix.
