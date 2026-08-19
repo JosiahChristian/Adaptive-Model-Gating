@@ -28,7 +28,7 @@ def summary(rows,f,m):
 def means(c,k):return {s:sum(float(r[k]) for r in c if r['strategy']==s)/len(SEEDS) for s in STRATEGIES}
 def ci(v):return list(paired_bootstrap_ci(v,seed=16016,reps=10000))
 
-def report_from(summaries,tau,k,k3,la,lb,lab,lc,lac,lbc,thresholds):
+def report_from(summaries,tau,k,k3,la,lb,lc,lab,lac,lbc,thresholds):
  reps=[]
  for f,m in CELLS:
   c=[r for r in summaries if r['family']==f and float(r['magnitude'])==m];p={seed:{st:next(r for r in c if int(float(r['seed']))==seed and r['strategy']==st) for st in STRATEGIES} for seed in SEEDS}
@@ -49,10 +49,10 @@ def report_from(summaries,tau,k,k3,la,lb,lab,lc,lac,lbc,thresholds):
   if f=='drift_all_aux_fault':
    d=[p[s]['sequential_provenance_quorum']['operational_loss_401_600']-p[s]['triad_persistence']['operational_loss_401_600'] for s in SEEDS];rep.update(C8_mean=sum(d)/200,C8_bootstrap_95_ci=ci(d),C8_adapt_gap_vs_triad=rep['adapt_401_420_rate']['sequential_provenance_quorum']-rep['adapt_401_420_rate']['triad_persistence'],C8_seq_energy_mean=rep['mean_probe_energy']['sequential_provenance_quorum'])
   reps.append(rep)
- return {'tau':tau,'kappa':k,'kappa3':k3,'lambda_anchor_a':la,'lambda_anchor_b':lb,'lambda_anchor_ab':lab,'lambda_anchor_c':lc,'lambda_anchor_ac':lac,'lambda_anchor_bc':lbc,'lambda_probe_rounds':list(thresholds),'probe_calibration_seeds':[1800,1999],'evaluation_seeds':[16000,16199],'bootstrap_seed':16016,'probe_amplitudes':[.025,.05,.1,.2],'sigma_probe':.05,'n_seeds_per_cell':200,'strategies':STRATEGIES,'cells':reps,'audit_seeds':sorted(AUDIT)}
+ return {'tau':tau,'kappa':k,'kappa3':k3,'lambda_anchor_a':la,'lambda_anchor_b':lb,'lambda_anchor_c':lc,'lambda_anchor_ab':lab,'lambda_anchor_ac':lac,'lambda_anchor_bc':lbc,'lambda_probe_rounds':list(thresholds),'probe_calibration_seeds':[1800,1999],'evaluation_seeds':[16000,16199],'bootstrap_seed':16016,'probe_amplitudes':[.025,.05,.1,.2],'sigma_probe':.05,'n_seeds_per_cell':200,'strategies':STRATEGIES,'cells':reps,'audit_seeds':sorted(AUDIT)}
 
 def calibrations():
- tau=calibrate_tau();k=calibrate_kappa();k3=calibrate_kappa3();la=calibrate_lambda_anchor();lb,lab=calibrate_dual_anchor_thresholds();lc,lac,lbc=calibrate_anchor_c_thresholds();thresholds=calibrate_lambda_probe_rounds();return tau,k,k3,la,lb,lab,lc,lac,lbc,thresholds
+ tau=calibrate_tau();k=calibrate_kappa();k3=calibrate_kappa3();la=calibrate_lambda_anchor();lb,lab=calibrate_dual_anchor_thresholds();lc,lac,lbc=calibrate_anchor_c_thresholds();thresholds=calibrate_lambda_probe_rounds();return tau,k,k3,la,lb,lc,lab,lac,lbc,thresholds
 
 def main():
  vals=calibrations();summaries=[];audit=[]
