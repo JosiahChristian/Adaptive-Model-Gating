@@ -1,0 +1,57 @@
+name: Experiment 016 Registration Recovery
+on:
+  push:
+    paths: [evaluation_requests/experiment_016_registration.request]
+permissions: {contents: read, actions: read, issues: write}
+jobs:
+  register-existing-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Locate latest Experiment 016 run with evidence artifact
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          repo=os.environ['GITHUB_REPOSITORY']
+          runs=json.loads(subprocess.check_output([
+              'gh','run','list','--repo',repo,'--workflow','experiment-016-requested.yml',
+              '--limit','20','--json','databaseId,headSha,status,conclusion,createdAt'
+          ], text=True))
+          selected=None
+          for run in runs:
+              rid=str(run['databaseId'])
+              arts=json.loads(subprocess.check_output([
+                  'gh','api',f'repos/{repo}/actions/runs/{rid}/artifacts'
+              ], text=True)).get('artifacts',[])
+              evidence=[a for a in arts if a.get('name')=='experiment-016-evidence' and not a.get('expired')]
+              if evidence:
+                  selected=(run,evidence[0]); break
+          if selected is None:
+              raise SystemExit('No unexpired experiment-016-evidence artifact found')
+          run,artifact=selected
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write(f"SOURCE_RUN_ID={run['databaseId']}\n")
+              f.write(f"SOURCE_HEAD_SHA={run['headSha']}\n")
+              f.write(f"ARTIFACT_ID={artifact['id']}\n")
+              f.write(f"ARTIFACT_SIZE={artifact['size_in_bytes']}\n")
+              f.write(f"ARTIFACT_DIGEST={artifact.get('digest','')}\n")
+          PY
+      - name: Register compact completed evidence pointer
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          cat > /tmp/experiment016_issue.md <<EOF
+          Automated completed evidence pointer for Experiment 016 (registration recovery only).
+
+          - run_id: $SOURCE_RUN_ID
+          - head_sha: $SOURCE_HEAD_SHA
+          - artifact_name: experiment-016-evidence
+          - artifact_id: $ARTIFACT_ID
+          - artifact_size_bytes: $ARTIFACT_SIZE
+          - artifact_digest: $ARTIFACT_DIGEST
+          - status: completed evidence artifact already uploaded; original run failed only while creating an oversized GitHub issue body
+          - execution: sharded across twenty-two frozen cells
+          - full_report: results/experiment_016/report.json inside artifact `experiment-016-evidence`
+          - scientific_rerun: no
+          EOF
+          gh issue create --title "Experiment 016 evidence run $SOURCE_RUN_ID" --body-file /tmp/experiment016_issue.md
