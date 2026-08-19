@@ -21,9 +21,12 @@ def generate_experiment_011_stream(seed, family, magnitude):
     if magnitude < 0:
         raise ValueError("magnitude must be nonnegative")
     rng = Random(seed)
-    keys = ("x_true", "x_primary", "x_r1", "x_r2", "z", "y", "a", "physical_epsilon",
-            "r1_unit_noise", "r2_unit_noise", "anchor_unit_noise", "common_unit_noise",
-            "primary_unit_noise", "anchor_fault_unit_noise", "true_sigma_x")
+    keys = (
+        "x_true", "x_primary", "x_r1", "x_r2", "z", "y", "a", "physical_epsilon",
+        "r1_unit_noise", "r2_unit_noise", "anchor_unit_noise", "common_unit_noise",
+        "primary_unit_noise", "anchor_fault_unit_noise", "true_sigma_x",
+        "ref_fault_unit_noise", "primary_fault_sigma", "ref1_fault_sigma", "common_sigma",
+    )
     s = {k: [0.0] * (N_STEPS + 1) for k in keys}
     s["a"] = [BASELINE_A] * (N_STEPS + 1)
     for t in range(1, N_STEPS + 1):
@@ -49,9 +52,11 @@ def generate_experiment_011_stream(seed, family, magnitude):
                 s["x_r1"][t] += shared
                 s["x_r2"][t] += shared
                 s["true_sigma_x"][t] = magnitude
+                s["common_sigma"][t] = magnitude
             elif family == "primary_fault":
                 s["x_primary"][t] += magnitude * s["primary_unit_noise"][t]
                 s["true_sigma_x"][t] = magnitude
+                s["primary_fault_sigma"][t] = magnitude
             elif family == "drift_anchor_fault":
                 s["a"][t] = BASELINE_A + magnitude
                 s["z"][t] += BETA_ANCHOR * magnitude * s["anchor_fault_unit_noise"][t]
