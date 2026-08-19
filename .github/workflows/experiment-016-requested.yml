@@ -70,10 +70,36 @@ jobs:
         env: {GH_TOKEN: '${{ github.token }}'}
         run: |
           python - <<'PY'
-          import json,os
+          import json, os
           from pathlib import Path
-          report=json.loads(Path('results/experiment_016/report.json').read_text())
-          body=f"Automated completed evidence pointer for Experiment 016.\n\n- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n- artifact_name: experiment-016-evidence\n- status: completed\n- execution: sharded across twenty-two frozen cells\n\n```json\n{json.dumps(report,indent=2)}\n```\n"
+          report = json.loads(Path('results/experiment_016/report.json').read_text())
+          compact = {
+              'tau': report.get('tau'),
+              'kappa': report.get('kappa'),
+              'kappa3': report.get('kappa3'),
+              'lambda_probe_rounds': report.get('lambda_probe_rounds'),
+              'probe_calibration_seeds': report.get('probe_calibration_seeds'),
+              'evaluation_seeds': report.get('evaluation_seeds'),
+              'bootstrap_seed': report.get('bootstrap_seed'),
+              'probe_amplitudes': report.get('probe_amplitudes'),
+              'sigma_probe': report.get('sigma_probe'),
+              'n_seeds_per_cell': report.get('n_seeds_per_cell'),
+              'strategies': report.get('strategies'),
+              'audit_seeds': report.get('audit_seeds'),
+              'cell_count': len(report.get('cells', [])),
+          }
+          body = (
+              'Automated completed evidence pointer for Experiment 016.\n\n'
+              f"- run_id: {os.environ['GITHUB_RUN_ID']}\n"
+              f"- head_sha: {os.environ['GITHUB_SHA']}\n"
+              '- artifact_name: experiment-016-evidence\n'
+              '- status: completed\n'
+              '- execution: sharded across twenty-two frozen cells\n'
+              '- full_report: results/experiment_016/report.json inside artifact `experiment-016-evidence`\n\n'
+              '```json\n' + json.dumps(compact, indent=2) + '\n```\n'
+          )
+          if len(body) >= 60000:
+              raise RuntimeError(f'bounded evidence pointer unexpectedly too large: {len(body)}')
           Path('/tmp/experiment016_issue.md').write_text(body)
           PY
           gh issue create --title "Experiment 016 evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment016_issue.md
