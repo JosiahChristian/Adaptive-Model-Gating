@@ -1,3 +1,4 @@
 Experiment 013 requested after prospective freeze and post-freeze implementation.
 Frozen specification: research/experiment_013_spec.md
 Run the complete unit-test-gated 22-cell sharded evaluation once.
+Execution repair retrigger after legacy stream compatibility hardening.
