@@ -35,7 +35,7 @@ def write_csv(p,rows):
 
 def summary(rows,c):
  r0=rows[0];post=[r for r in rows if 401<=r['t']<=600];p20=[r for r in rows if 401<=r['t']<=420];target=BASELINE_A+float(c['magnitude']) if c['family'].startswith('drift') else BASELINE_A
- return {'seed':r0['seed'],'label':c['label'],'kind':c['kind'],'family':c['family'],'magnitude':c['magnitude'],'gain':c.get('gain',r0.get('probe_gain',1.0)),'noise_scale':c.get('noise_scale',1.0),'strategy':r0['strategy'],'coverage':float(r0.get('provenance_accepted',0)),'correct':float(r0.get('accepted_partition_correct',0) or 0),'abstain':float(r0.get('provenance_abstain',0)),'probe_energy':float(r0.get('probe_energy',0)),'adapt_401_420':int(any(r['adapt'] for r in p20)),'operational_loss_401_600':sum(r['sq_error'] for r in post),'final_slope_error_abs':abs(rows[-1]['slope_after']-target),'noise_factor':float(r0.get('diagnostic_noise_factor',1.0)),'noise_sd_hat':float(r0.get('diagnostic_noise_sd_hat',0.05))}
+ return {'seed':r0['seed'],'label':c['label'],'kind':c['kind'],'family':c['family'],'magnitude':c['magnitude'],'gain':c.get('gain',r0.get('probe_gain',1.0)),'noise_scale':c.get('noise_scale',1.0),'strategy':r0['strategy'],'coverage':float(r0.get('provenance_accepted',0)),'correct':float(r0.get('accepted_partition_correct',0) or 0),'abstain':float(r0.get('provenance_abstain',0)),'probe_energy':float(r0.get('probe_energy',0)),'adapt_401_420':int(any(r['adapt'] for r in p20)),'adapt_signature':','.join(str(r['t']) for r in rows if r.get('adapt')),'operational_loss_401_600':sum(r['sq_error'] for r in post),'final_slope_error_abs':abs(rows[-1]['slope_after']-target),'noise_factor':float(r0.get('diagnostic_noise_factor',1.0)),'noise_sd_hat':float(r0.get('diagnostic_noise_sd_hat',0.05))}
 
 def rates(q):
  acc=[r for r in q if r['coverage']==1];correct=sum(r['correct'] for r in acc)
@@ -55,6 +55,12 @@ def report_from(rows):
    if qa['coverage']<old['coverage']-.03 or (qa['precision'] or 0)<.99 or energies[NOISE_AWARE_STRATEGY]>energies[QUALIFICATION_AWARE_STRATEGY]+.05:H4=False
   if c.get('gain') in (.425,.35) and c.get('noise_scale')==1.0:
    if qa['coverage']<old['coverage']-.03 or qa['wrong_acceptance']!=0:H5=False
+  byseed={(int(r['seed']),r['strategy']):r for r in cr};fallback_mismatches=0
+  for r in by[NOISE_AWARE_STRATEGY]:
+   if r['abstain']==1:
+    t=byseed[(int(r['seed']),TRIAD)]
+    if r['adapt_signature']!=t['adapt_signature'] or abs(float(r['operational_loss_401_600'])-float(t['operational_loss_401_600']))>1e-12:fallback_mismatches+=1
+  if fallback_mismatches:H6=False
   if c.get('gain',1)>0 and c.get('gain',1)<=.35 and c.get('noise_scale',1)>=1.5 and adapts[NOISE_AWARE_STRATEGY]>adapts[TRIAD]+.02:H6=False
-  cells_out.append({'cell':c,'rates':rr,'mean_probe_energy':energies,'adapt_401_420_rate':adapts,'mean_noise_factor':mean(by[NOISE_AWARE_STRATEGY],'noise_factor'),'noise_factor_min':min(r['noise_factor'] for r in by[NOISE_AWARE_STRATEGY]),'noise_factor_max':max(r['noise_factor'] for r in by[NOISE_AWARE_STRATEGY])})
+  cells_out.append({'cell':c,'rates':rr,'mean_probe_energy':energies,'adapt_401_420_rate':adapts,'fallback_exact_mismatches':fallback_mismatches,'mean_noise_factor':mean(by[NOISE_AWARE_STRATEGY],'noise_factor'),'noise_factor_min':min(r['noise_factor'] for r in by[NOISE_AWARE_STRATEGY]),'noise_factor_max':max(r['noise_factor'] for r in by[NOISE_AWARE_STRATEGY])})
  return {'evaluation_seeds':[23000,23199],'bootstrap_seed':BOOTSTRAP_SEED,'n_seeds_per_cell':200,'cell_count':len(CELLS),'strategies':STRATEGIES,'no_recalibration':True,'audit_seeds':sorted(AUDIT),'hypotheses':{'H1_restored_safety':H1,'H2_high_noise_precision':H2,'H3_high_noise_coverage':H3,'H4_nominal_nonregression':H4,'H5_moderate_gain_preservation':H5,'H6_low_information_conservatism':H6,'H7_mechanism_validity':'structural'},'cells':cells_out}
