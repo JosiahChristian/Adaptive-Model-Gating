@@ -1,0 +1,5 @@
+Experiment 020 frozen evaluation requested.
+
+Corrected scientific specification frozen prospectively at commit 90cc619897ed3c9f349dce9a225719b6872b66b3 before any Experiment 020 calibration or evaluation outcome generation.
+
+This marker requests execution only. The workflow must pass the Experiment 020 compile/smoke validation gate before launching the twenty-eight frozen evaluation shards.
