@@ -4,4 +4,4 @@ Scientific specification frozen prospectively at commit 81cc36c19e82e8ddd4f89bcf
 
 This marker requests execution only. It does not alter the frozen Experiment 019 scientific specification.
 
-Retriggered after execution-only CI guard repair; frozen science unchanged.
+Evaluation-only rerun after removing the preflight test/smoke gate; frozen science unchanged.
