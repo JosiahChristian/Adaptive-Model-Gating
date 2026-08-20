@@ -1,19 +1,21 @@
 # Experiment 020 — Prospective Early Edge-Targeted Round-4 Confirmation
 
-**Status:** prospectively frozen before any Experiment 020 outcome generation.
+**Status:** prospectively corrected and frozen before any Experiment 020 calibration or evaluation outcome generation.
 
 ## Scientific boundary
 
-Experiment 019 established adaptive edge-targeted confirmation efficiency after four full diagnostic rounds. At `g_probe=0.50`, targeted coverage was `0.995`, precision `1.000`, wrong acceptance `0.000`, and mean diagnostic energy `0.923875`, while the Experiment-018 full-confirmation comparator used more energy and achieved lower coverage. The round-4 leading-edge selector was physically correct in every entered `g_probe=0.50` seed.
+Experiment 019 established adaptive edge-targeted confirmation efficiency after four full diagnostic rounds. At `g_probe=0.50`, targeted coverage was `0.995`, precision `1.000`, wrong acceptance `0.000`, and mean diagnostic energy `0.923875`.
 
-Experiment 020 asks whether the reciprocal edge can be selected one round earlier, after round 3, so that round 4 initially challenges only the two endpoints of the leading candidate edge. If the early targeted round-4 evidence is insufficient, the strategy must execute the missing third round-4 block, reconstruct the exact full round-4 observation set, and then continue with the frozen Experiment-019 rule. Thus Experiment 020 tests an energy-saving early-exit layer, not a replacement for the validated 019 fallback.
+Experiment 020 asks whether the reciprocal edge can be selected one round earlier, after round 3, so that round 4 initially challenges only the two endpoints of the leading candidate edge. If the early targeted round-4 evidence is insufficient, the strategy executes the missing third round-4 block and then applies the inherited Experiment-019 decision rules to the completed three-target round-4 evidence.
 
-No Experiment 020 outcome may be generated before this specification is committed. After freeze, all selector rules, block chronology, calibration ranges, cells, seeds, thresholds, comparators, estimands, and success criteria below are immutable in response to outcomes.
+A pre-implementation review identified an impossible invariant in the initial draft: because diagnostic noise is time-indexed, reordering a target block cannot reproduce Experiment 019's seedwise round-4 scores exactly. This correction is made before any Experiment 020 calibration or evaluation outcome exists. Experiment 020 therefore tests **distributionally equivalent fallback-rule preservation**, not impossible pathwise equality.
+
+No Experiment 020 outcome may be generated before this corrected specification is committed. After this correction freeze, selector rules, chronology, calibration ranges, cells, seeds, thresholds, comparators, estimands, and success criteria below are immutable in response to outcomes.
 
 ## Hypotheses
 
 - **H1 — early-target efficiency:** at `g_probe=0.50`, round-3 selection plus two-endpoint round-4 confirmation reduces mean diagnostic energy relative to Experiment 019 while retaining high final coverage and precision.
-- **H2 — exact fallback preservation:** whenever early targeted round 4 does not confidence-qualify, completing the missing third round-4 block yields the exact inherited round-4 state and therefore the same subsequent Experiment-019 decision path.
+- **H2 — fallback-rule preservation:** when early targeting does not qualify, completing the third round-4 target and applying the inherited Experiment-019 rules preserves coverage, precision, operational behavior, and safety to preregistered noninferiority tolerances. Exact seedwise score equality is neither required nor claimed.
 - **H3 — round-3 selector validity:** the unique leading edge after round 3 is sufficiently accurate at moderate gain for early targeting to be useful.
 - **H4 — standard-gain preservation:** `g_probe=1.00` behavior remains high-coverage/high-precision and does not incur greater mean burden than Experiment 019.
 - **H5 — attenuation safety:** at gains `0.375`, `0.25`, and `0.125`, the early layer does not increase wrong acceptance or operational loss relative to Experiment 019 or `triad_persistence`.
@@ -37,31 +39,23 @@ The cumulative round-3 reciprocal scores `Q_3(AB)`, `Q_3(AC)`, and `Q_3(BC)` are
 After round 3, identify the unique pair with the largest `Q_3` value.
 
 - A unique maximum selects that pair for early round-4 targeting.
-- An exact numerical tie selects no pair; in that case execute the complete inherited three-block round 4 and continue exactly as Experiment 019.
-- The selector may use only round-1..3 diagnostic observations and frozen thresholds/statistics.
-- It may not use family labels, known gain, oracle truth, post-event operational values, evaluation outcomes, or Experiment-019 results beyond the already frozen motivation for this experiment.
+- An exact numerical tie selects no pair; in that case execute the complete inherited three-block round 4 and continue under the Experiment-019 rules.
+- The selector may use only round-1..3 diagnostic observations and frozen statistics.
+- It may not use family labels, known gain, oracle truth, post-event operational values, or evaluation outcomes.
 
 ## Early targeted round 4
 
 Round-4 amplitude remains exactly `0.200`.
 
-The two selected endpoints receive the first two five-step blocks:
+For a selected pair `(i,j)`, challenge `i` during `246..250` and `j` during `251..255`. The unselected target is not challenged before the early decision.
 
-- selected AB: A `246..250`, B `251..255`;
-- selected AC: A `246..250`, C `251..255`;
-- selected BC: B `246..250`, C `251..255`.
-
-No third target is challenged before the early decision.
-
-The incremental early-target round-4 energy is exactly `2 * 5 * 0.2^2 = 0.400000`.
-
-Rounds 1–3 consume exactly `0.196875`, so the energy at the early decision point is exactly `0.596875`.
+The incremental early-target round-4 energy is exactly `2 * 5 * 0.2^2 = 0.400000`. Rounds 1–3 consume exactly `0.196875`, so energy at the early decision point is exactly `0.596875`.
 
 ## Early targeted round-4 statistic and calibration
 
-For the selected pair, extend its cumulative statistic using amplitudes `[0.025, 0.050, 0.100, 0.200]` and the two selected round-4 reciprocal responses. Nonselected pairs retain their round-3 status and cannot newly confidence-qualify at the early decision.
+For the selected pair, extend its cumulative signed statistic using amplitudes `[0.025, 0.050, 0.100, 0.200]` and the two selected round-4 reciprocal responses. Nonselected pairs retain their round-3 status and cannot newly confidence-qualify at the early decision.
 
-Use new null calibration seeds exactly `5000..5999`, disjoint from every inherited calibration range and all evaluation seeds.
+Use new null calibration seeds exactly `5000..5999`, disjoint from all inherited calibration ranges and evaluation seeds.
 
 For each zero-response calibration seed:
 
@@ -74,21 +68,17 @@ Freeze:
 - `mu_4^E` = empirical 99th percentile of selected-edge null statistics;
 - `nu_4^E` = empirical 99.9th percentile of selected-edge null statistics.
 
-Evaluation data may not contribute to calibration.
+Early deployment is permitted only if the early graph contains exactly one reciprocal edge, producing one two-source component and one singleton, and the selected edge exceeds `nu_4^E`. Otherwise continue to fallback completion.
 
-Early deployment is permitted only if the early graph contains exactly one reciprocal edge, giving one two-source component and one singleton, and the selected edge exceeds `nu_4^E`. Otherwise the strategy must continue to exact fallback reconstruction.
+## Fallback completion and inherited rule application
 
-## Exact fallback reconstruction
+If the early targeted decision does not qualify, challenge the sole unselected target during `256..260` at amplitude `0.200`.
 
-If the early targeted decision does not qualify, execute the one missing round-4 target block during `256..260`.
+After this block, there is exactly one five-step amplitude-0.200 response for each target identity A, B, and C. Because target chronology differs from Experiment 019 for some selected pairs, the resulting seedwise response matrix is **not required to equal** Experiment 019's matrix. It is generated under the same physical response law, amplitude, duration, and independent-noise distribution.
 
-The missing target is the sole member of `{A,B,C}` not challenged in `246..255`.
+Apply the inherited round-4 cumulative graph thresholds and the inherited Experiment-019 round-4 leading-edge selector/targeted-round-5 deployment logic without threshold relaxation or outcome-dependent modification. The fallback claim is therefore rule-level and distributional, not pathwise.
 
-For purposes of the inherited full round-4 statistics, the three round-4 target responses are indexed by target identity, not by their within-round temporal order. Therefore after the missing block executes, the strategy possesses exactly one five-step amplitude-0.200 challenge for each of A, B, and C under the same independent-noise law.
-
-The reconstructed full round-4 response matrix is then passed into the inherited Experiment-019 selector/decision path. No thresholds, confidence rules, round-5 rules, or fallback behavior may be altered.
-
-If the round-3 selector ties, all three inherited round-4 blocks are executed directly and the strategy continues as Experiment 019.
+If the round-3 selector ties, execute A `246..250`, B `251..255`, C `256..260` exactly as Experiment 019 and continue under the inherited rules.
 
 ## Frozen cells
 
@@ -111,7 +101,7 @@ Evaluate exactly sixteen strategies: the fifteen frozen Experiment-019 strategie
 
 16. `early_targeted_replicated_selective_cumulative_provenance_quorum`.
 
-The first fifteen retain their Experiment-019 meanings exactly. Only strategy 16 may use the early round-3 selector and two-endpoint round-4 observations.
+The first fifteen retain their Experiment-019 meanings exactly. Only strategy 16 may use the early round-3 selector and reordered round-4 observations.
 
 ## Seeds and bootstrap
 
@@ -139,8 +129,8 @@ Retain all Experiment-019 estimands. For the new strategy additionally record:
 - early selected-edge updated score;
 - early structural/qualified state;
 - missing-third-block execution indicator;
-- exact-fallback-reconstruction indicator;
-- whether later Experiment-019 round-5 targeting executes;
+- fallback-completion indicator;
+- later Experiment-019 targeted-round-5 execution indicator;
 - final accepted/abstained state;
 - accepted-partition correctness as audit-only truth;
 - total target-block count and diagnostic energy.
@@ -164,11 +154,17 @@ H1 requires:
 
 Failure of either coverage noninferiority or the energy-reduction requirement falsifies the central claim.
 
-### C2 — exact fallback preservation
+### C2 — fallback-rule preservation
 
-Among all seeds/cells in which early targeting does not qualify and the missing third round-4 block is executed, the reconstructed inherited round-4 `Q_4` values and the subsequent Experiment-019 final accepted/abstained decision must match a separately executed Experiment-019 comparator to numerical tolerance `1e-12` for scores and exactly for discrete decisions.
+Across cells/seeds entering fallback completion, compare the new strategy with Experiment 019 using paired evaluation seeds. Require:
 
-Any mismatch falsifies H2 and invalidates the new strategy implementation.
+- final coverage gap versus Experiment 019 `>=-0.03` in each A/B-fault gain/magnitude cell;
+- accepted precision `>=0.99` whenever at least one decision is accepted;
+- wrong acceptance `<=0.01` at gains `1.00`, `0.50`, and `0.125`, and `<=0.05` at gains `0.375` and `0.25`;
+- early-loss difference versus Experiment 019 paired-bootstrap CI upper endpoint `<=0.05 * mean(Experiment019 early loss)` in each A/B-fault cell;
+- adaptation-by-420 gap versus Experiment 019 `>=-0.10`.
+
+Failure of these fallback noninferiority conditions falsifies H2. No exact seedwise score equality is tested.
 
 ### C3 — round-3 selector validity
 
@@ -206,12 +202,12 @@ Report early-targeted-minus-triad early loss and accepted provenance rate. No su
 
 ## Frozen claim logic
 
-The central Experiment-020 claim is **earlier adaptive targeting efficiency**: round-3 reciprocal evidence contains enough directional information to focus round-4 intervention on two targets, allow safe early qualification in a useful subset of moderate-gain cases, and reduce mean diagnostic burden while retaining exact access to the validated Experiment-019 path whenever the early decision is insufficient.
+The central Experiment-020 claim is **earlier adaptive targeting efficiency**: round-3 reciprocal evidence contains enough directional information to focus round-4 intervention on two targets, permit safe early qualification in a useful subset of moderate-gain cases, and reduce mean diagnostic burden while retaining the validated Experiment-019 decision rules as a distributionally equivalent fallback after completion.
 
 - H1 is required for the central claim.
-- H2 is a mandatory implementation-validity condition.
+- H2 is a mandatory fallback-validity condition.
 - H3 provides the mechanistic explanation.
 - H4–H6 are mandatory safety/regression protections.
 - H7 remains an explicit unsolved truth-identifiability boundary.
 
-No outcome-driven threshold, selector, amplitude, timing, or success-criterion modification is permitted after this freeze.
+No outcome-driven threshold, selector, amplitude, timing, or success-criterion modification is permitted after this corrected freeze.
