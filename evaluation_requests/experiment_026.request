@@ -1,0 +1,5 @@
+Experiment 026 high-powered rare-error and coverage-frontier characterization requested.
+
+Scientific specification frozen prospectively at commit b5c7a4eb4b759fe0a293874ceb581e88b0c4938e.
+
+This marker requests execution only. It does not alter any frozen Experiment-021, Experiment-023, Experiment-024, or Experiment-025 policy, calibration, trigger, threshold, intervention schedule, fallback, cell definition, seed range, estimand, or interpretation rule.
