@@ -1,5 +1,6 @@
 Experiment 024 uncertainty-aware edge-margin evaluation requested.
 
 Scientific specification frozen prospectively at commit 6963156283e2372e2f2a8e9db29b443f6893344d.
+Execution repair: comparator dispatch validation fixed at commit c72b75c190f5b3f5f77df1be31a4d0dfacbeadc7.
 
 This marker requests execution only. It does not alter the frozen margin rule, raw evidence floors, intervention schedule, fallback, fresh seed range, hypotheses, or success criteria.
