@@ -1,0 +1,5 @@
+Experiment 025 conditional high-noise replicated-confirmation evaluation requested.
+
+Scientific specification frozen prospectively at commit 9e4e4010af16db299b52a2d7a0c79f1160f382a9.
+
+This marker requests execution only. It does not alter the frozen noise trigger, round-6 amplitude or timing, inherited raw evidence floors, margin cutoff, fallback, fresh seed range, hypotheses, or success criteria.
