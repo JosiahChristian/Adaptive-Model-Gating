@@ -1,0 +1,5 @@
+Experiment 023 frozen noise-aware confidence evaluation requested.
+
+Scientific specification frozen prospectively at commit d31a46dc040911ccfd3f12094adabcd0950f1f48.
+
+This marker requests execution only. It does not alter the frozen noise-factor formula, inherited Experiment-021 policy structure, evaluation cells, seeds, hypotheses, or success criteria.
