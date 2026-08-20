@@ -4,3 +4,5 @@ Scientific specification frozen prospectively at commit 68c54649abf806bd8e776ded
 Stress realization contract frozen prospectively at commit 06cd4bc9e76f3e6c2d61e358b8619049457d3e7f.
 
 This marker requests execution only. It does not alter the frozen Experiment-021 policy, inherited calibrations, Experiment-022 stress matrix, hypotheses, or success criteria.
+
+Execution retrigger after validation-dimension repair at 01b571618dd822610513eb2fddce3d4e594d2196; frozen science unchanged.
