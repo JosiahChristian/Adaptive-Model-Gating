@@ -10,7 +10,7 @@ from experiment_020 import (
     response_matrix_for_blocks, cumulative_with_custom_r4,
     inject_targeted_round5_custom, targeted_score_custom,
 )
-from experiment_023 import diagnostic_noise_factor
+from experiment_023 import diagnostic_noise_factor, NOISE_AWARE_STRATEGY, run_experiment_023_strategy
 from experiment_022 import bind_stressed_stream, generate_stress_stream, run_experiment_022_strategy
 
 MARGIN_STRATEGY='uncertainty_aware_margin_qualification_aware_early_targeted_replicated_selective_cumulative_provenance_quorum'
@@ -49,12 +49,10 @@ def _groups(pair):
 
 def infer_margin_policy(stream,mu,mu5t,mu4e,sigma_hat):
     trace={'stages':[],'early':0,'missing':0,'round5':0,'pair3':None,'pair5':None,'Q4':None}
-    # Qualification-aware exits through rounds 1..3.
     for rnd in (1,2,3):
         q,_,_=q_for_round(stream,rnd);cand,ok,st=qualify_q(q,mu[rnd-1],sigma_hat);trace['stages'].append({'stage':f'r{rnd}',**(st or {})})
         if ok:
             return _groups(cand),1,0,rnd,stream,trace
-    # Early-target round 4 uses the unique round-3 leader for target selection.
     q3,_,_=q_for_round(stream,3);pair3=leading(q3);trace['pair3']=pair3
     if pair3 is None:
         full,blocks,_=prepare_early_round4(stream,None)
@@ -69,12 +67,9 @@ def infer_margin_policy(stream,mu,mu5t,mu4e,sigma_hat):
         if ok:
             return _groups(pair3),1,0,4,early,trace
         full,blocks=complete_round4(early,blocks,missing);trace['missing']=1
-    # Full round 4 ambiguity-aware qualification.
     R4=response_matrix_for_blocks(full,blocks);_,q4,_=cumulative_with_custom_r4(full,R4);trace['Q4']=q4
     pair4,ok4,st4=qualify_q(q4,mu[3],sigma_hat);trace['stages'].append({'stage':'full_r4',**(st4 or {})})
     if ok4:return _groups(pair4),1,0,4,full,trace
-    # Targeted round 5 updates only the leading round-4 edge and compares its
-    # updated score against the two inherited round-4 competitors.
     pair5=leading(q4);trace['pair5']=pair5
     if pair5 is None:return None,0,1,0,full,trace
     s5=inject_targeted_round5_custom(full,pair5);score,_,_,_=targeted_score_custom(s5,pair5,R4);q5=dict(q4);q5[pair5]=float(score)
@@ -85,7 +80,6 @@ def infer_margin_policy(stream,mu,mu5t,mu4e,sigma_hat):
 
 
 def _annotation(stream,accepted,abstain,stop,groups,trace,sigma_hat):
-    # Energy mirrors the inherited 020 path exactly.
     if trace['pair3'] is None:energy=0.796875;blocks=12
     else:energy=0.196875+0.4+(0.2 if trace['missing'] else 0.0);blocks=11+(1 if trace['missing'] else 0)
     if trace['round5']:energy+=0.4;blocks+=2
@@ -102,9 +96,9 @@ def _annotation(stream,accepted,abstain,stop,groups,trace,sigma_hat):
 
 
 def run_experiment_024_strategy(seed,c,strategy,vals):
+    if strategy==NOISE_AWARE_STRATEGY:return run_experiment_023_strategy(seed,c,strategy,vals)
     if strategy!=MARGIN_STRATEGY:return run_experiment_022_strategy(seed,c,strategy,vals)
     stream=generate_stress_stream(seed,c);_,sigma_hat=diagnostic_noise_factor(stream)
-    # vals = tau,kappa,k3,la,lb,lc,lab,lac,lbc,lambdas,mu,nu,mu5,nu5,mu5t,nu5t,mu4e,nu4e
     tau,kappa,k3,la,lb,lc,lab,lac,lbc,lambdas,mu,nu,mu5,nu5,mu5t,nu5t,mu4e,nu4e=vals
     groups,accepted,abstain,stop,used_stream,trace=infer_margin_policy(stream,mu,mu5t,mu4e,sigma_hat)
     ann=_annotation(used_stream,accepted,abstain,stop,groups,trace,sigma_hat)
