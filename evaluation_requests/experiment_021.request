@@ -1,0 +1,7 @@
+Experiment 021 frozen evaluation requested.
+
+Scientific specification frozen prospectively at commit cb8b38df8c3e0ca6118ef4e57cd05299a6775081.
+
+This marker requests execution only. It does not alter the frozen Experiment 021 scientific specification.
+
+The workflow must pass compilation and dispatcher smoke validation before any evaluation shard may start.
