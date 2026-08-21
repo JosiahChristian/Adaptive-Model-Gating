@@ -36,11 +36,13 @@ def summary(rows,c,comparator_rows=None):
  causal_violation=0;changed=0
  if comparator_rows is not None:
   by={int(r['t']):r for r in comparator_rows}
-  for r in rows:
-   t=int(r['t']);b=by[t]
-   if int(r.get('adapt',0))!=int(b.get('adapt',0)):
-    changed+=1
-    if int(r.get('context_vote_t',0))!=1:causal_violation+=1
+  changed=sum(1 for r in rows if int(r.get('adapt',0))!=int(by[int(r['t'])].get('adapt',0)))
+ for r in rows:
+  removed=int(r.get('context_removed_suspect_veto',0))
+  if removed:
+   valid=(int(r.get('context_vote_t',0))==1 and int(r.get('provenance_suspect_original',0))==1 and int(r.get('provenance_suspect_effective',1))==0 and
+          int(r.get('triad_primary_bad',0))==0 and int(r.get('experiment029_original_veto',0))==1 and int(r.get('adapt',0))==1)
+   if not valid:causal_violation+=1
  return {'seed':int(r0['seed']),'label':c['label'],'strategy':r0['strategy'],'coverage':accepted,'correct':correct,'wrong_accept':int(accepted and not correct),'abstain':abstain,
          'stop_round':int(float(r0.get('probe_stop_round',0) or 0)),'probe_energy':float(r0.get('probe_energy',0)),'deploy_hypothesis':str(r0.get('posterior_deploy_hypothesis','')),
          'posterior_at_deployment':float(r0.get('posterior_at_deployment',0) or 0),'operational_loss_401_600':sum(float(r['sq_error']) for r in post),
