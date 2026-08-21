@@ -1,0 +1,6 @@
+Experiment 027 sequential probabilistic identifiability calibration requested.
+
+Phase-II charter frozen prospectively at commit d7bd2dba4cecfd585268a063338055cc7a8c1ade.
+Corrected Experiment-027 scientific specification frozen prospectively at commit 7bcb5de4086b466fc84333ec66d34ebccc6d6af1.
+
+This marker requests execution only. It does not alter the frozen response-topology hypothesis semantics, uniform priors, BETA_SCALE=0.20, analytic variance approximation, symmetric five-round diagnostic schedule, 15-cell matrix, seed range 27000..27999, calibration metrics, hypotheses H1-H8, or interpretation rule.
