@@ -1,0 +1,6 @@
+Experiment 035 requested evaluation marker.
+
+Scientific specification frozen at commit: 8302c3ba6e45ec4cdf7a5c526c28a723bce71d69
+Prospective contract: research/experiment_035_spec.md and issue #61.
+
+Run only the dedicated Experiment 035 Requested Evaluation workflow. Preserve the Experiment-028 Gaussian directed-covariance posterior, Experiment-029 0.99 topology-risk rule, Experiment-031 causal context vote, Experiment-032 composition, inherited triad veto/fallback, all calibration constants, and all frozen success criteria exactly. Replace only diagnostic probe noise by the preregistered variance-matched Laplace, Student-t(3), or contaminated-Gaussian families. No outcome-driven recalibration or retuning is permitted.
