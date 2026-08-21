@@ -1,0 +1,7 @@
+Experiment 030 requested after prospective freeze and hardened implementation.
+
+Frozen specification commit: b6c80ce2b8e82de85ae6131c336ee88b2351eba7
+Purpose: paired fresh-seed replication of whether topology confidence is sufficient for operational action value.
+Policies: Experiment-029 posterior-risk gate and triad_persistence, both inherited unchanged.
+Evaluation seeds: 30000..30999.
+No Experiment-030 outcome was observed before this request marker.
