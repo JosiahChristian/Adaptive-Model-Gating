@@ -21,10 +21,15 @@ for c in cells:
  for k in ('provenance_accepted','provenance_abstain','probe_stop_round','probe_energy','posterior_deploy_hypothesis'):
   assert a.get(k,'')==b.get(k,''),(c['label'],k,a.get(k),b.get(k))
  if a.get('posterior_at_deployment','')!='':assert abs(float(a['posterior_at_deployment'])-float(b['posterior_at_deployment']))<1e-12
- by={int(r['t']):r for r in r29}
  for r in r32:
-  t=int(r['t']);old=by[t]
-  if int(r.get('adapt',0))!=int(old.get('adapt',0)):assert int(r.get('context_vote_t',0))==1
-  assert not (int(r.get('adapt',0)) and int(r.get('triad_primary_bad',0)))
   v=int(r.get('context_vote_t',0));assert v in (0,1)
+  removed=int(r.get('context_removed_suspect_veto',0))
+  if removed:
+   assert v==1
+   assert int(r.get('provenance_suspect_original',0))==1
+   assert int(r.get('provenance_suspect_effective',1))==0
+   assert int(r.get('triad_primary_bad',0))==0
+   assert int(r.get('experiment029_original_veto',0))==1
+   assert int(r.get('adapt',0))==1
+  assert not (int(r.get('adapt',0)) and int(r.get('triad_primary_bad',0)))
 print('experiment032 smoke passed')
