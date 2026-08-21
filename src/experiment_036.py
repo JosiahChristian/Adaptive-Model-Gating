@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from math import exp,isfinite,log,sqrt
 import importlib
+from experiment_016 import SIGMA_PROBE
 from experiment_022 import generate_stress_stream
 from experiment_023 import diagnostic_noise_factor
 from experiment_027 import HYPOTHESES,inject_symmetric_round5
@@ -10,7 +11,6 @@ from experiment_028 import BETA_SCALE,TOPOLOGY_DIRECTIONS,directed_stage,covaria
 from experiment_029 import ACCEPT_THRESHOLD,WRONG_COST,FALLBACK_COST,TRIAD,_annotation
 from experiment_032 import COMPOSED_STRATEGY,_run_composed_gate,run_experiment_032_strategy
 from experiment_035 import NOISE_FAMILIES,generate_experiment_035_stream
-from experiment_022 import bind_stressed_stream
 
 ROBUST_STRATEGY='student_t3_directed_covariance_context_composed_risk_gate'
 STRATEGIES=(ROBUST_STRATEGY,COMPOSED_STRATEGY,TRIAD)
@@ -32,8 +32,18 @@ def frozen_cells():
     return tuple(out)
 CELLS=frozen_cells()
 
+def _gaussian_probe_only(seed,c):
+    base={'label':c['label'],'kind':'gain','family':'drift_ab_fault','magnitude':0.50,'gain':float(c['gain'])}
+    s=generate_stress_stream(seed,base);scale=float(c['noise_scale'])
+    for t in range(1,len(s['probe_obs_a'])):
+        for x in 'abc':
+            old=float(s[f'probe_noise_{x}'][t]);signal=float(s[f'probe_obs_{x}'][t])-SIGMA_PROBE*old
+            s[f'probe_noise_{x}'][t]=scale*old;s[f'probe_obs_{x}'][t]=signal+SIGMA_PROBE*scale*old
+    s['probe_noise_family']='gaussian';s['probe_noise_scale']=scale
+    return s
+
 def generate_experiment_036_stream(seed,c):
-    if c['noise_family']=='gaussian':return generate_stress_stream(seed,c)
+    if c['noise_family']=='gaussian':return _gaussian_probe_only(seed,c)
     return generate_experiment_035_stream(seed,c)
 
 @contextmanager
@@ -90,9 +100,7 @@ def run_experiment_036_strategy(seed,c,strategy,vals):
     else:
         s=inject_symmetric_round5(stream);groups,accepted,abstain,stop,path=infer_robust(s);ann=_annotation(s,groups,accepted,abstain,stop,path);tau,kappa,k3,la,lb,lc,lab,lac,lbc,*_=vals
         if abstain:
-            with bind_stressed_stream(s):
-                from experiment_022 import run_experiment_022_strategy
-                rows=run_experiment_022_strategy(seed,c,TRIAD,vals)
+            with bind_experiment_036_stream(stream):rows=run_experiment_032_strategy(seed,c,TRIAD,vals)
             for r in rows:r['strategy']=ROBUST_STRATEGY;r.update(ann)
         else:
             rows=_run_composed_gate(seed,f'experiment036_{c["label"]}',tau,k3,la,lb,lc,lab,lac,lbc,s,ann,groups)
