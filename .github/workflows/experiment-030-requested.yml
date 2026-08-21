@@ -1,0 +1,86 @@
+name: Experiment 030 Requested Evaluation
+on:
+  push:
+    paths: [evaluation_requests/experiment_030.request]
+permissions: {contents: read, issues: write}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m compileall -q src scripts
+      - run: python scripts/smoke_experiment_030.py
+  prepare:
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      cells: ${{ steps.matrix.outputs.cells }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          sys.path.insert(0,'scripts')
+          from run_experiment_030 import CELLS
+          print('cells='+json.dumps([{'label':c['label']} for c in CELLS],separators=(',',':')))
+          PY
+  evaluate-shards:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.cells) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Run frozen Experiment 030 cell
+        env:
+          EXPERIMENT_030_LABEL: ${{ matrix.label }}
+        run: python scripts/run_experiment_030_shard.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: '${{ matrix.label }}'
+          path: 'results/experiment_030_shards/${{ matrix.label }}/'
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 1
+  evaluate:
+    needs: evaluate-shards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with: {path: results/experiment_030_shards}
+      - run: python scripts/merge_experiment_030_shards.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-030-evidence
+          path: results/experiment_030/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register completed evidence pointer
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_030/report.json').read_text())
+          compact={k:r.get(k) for k in ('evaluation_seeds','n_seeds_per_cell','cell_count','strategies','audit_seeds','bootstrap_seed','bootstrap_resamples','hypotheses','accept_threshold','policy_modification','family_labels_evaluator_only','experiment029_inherited_unchanged')}
+          body=('Automated completed evidence pointer for Experiment 030.\n\n'
+                f"- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- artifact_name: experiment-030-evidence\n- status: completed\n'
+                '- execution: seven-cell, 1,000-seed paired decision-sufficiency replication\n'
+                '- full_report: results/experiment_030/report.json inside artifact `experiment-030-evidence`\n\n'
+                '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          if len(body)>=60000:raise RuntimeError(len(body))
+          Path('/tmp/experiment030_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 030 evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment030_issue.md
