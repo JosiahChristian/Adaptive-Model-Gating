@@ -1,0 +1,5 @@
+Experiment 034 requested evaluation marker.
+
+Scientific specification frozen at commit: d17aa4a1b2181192c672221db029de92c2d9b811
+
+Run only the dedicated Experiment 034 Requested Evaluation workflow. Preserve the Experiment-028 directed-covariance posterior, Experiment-029 0.99 topology-risk rule, Experiment-031 causal context vote, Experiment-032 composition, inherited triad veto/fallback, and all calibration constants exactly as frozen. The only scientific intervention is the prospectively specified H_ac/H_bc topology permutation with matching auxiliary-fault geometry. Correctness must use explicit cell topology truth rather than the historical H_ab helper. No outcome-driven retuning is permitted.
