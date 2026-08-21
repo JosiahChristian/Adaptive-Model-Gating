@@ -1,0 +1,46 @@
+name: Experiment 032 Evidence Registry Repair
+on:
+  push:
+    paths: [evaluation_requests/experiment_032_registry.request]
+permissions:
+  actions: read
+  contents: read
+  issues: write
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover completed Experiment 032 evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: b4cdf2d67aa4a7979fa4541e4c10bce38b0754d6
+        run: |
+          set -euo pipefail
+          RUN_ID="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/experiment-032-requested.yml/runs?head_sha=$TARGET_SHA&status=success&per_page=20" --jq '.workflow_runs | sort_by(.created_at) | last | .id')"
+          test -n "$RUN_ID" && test "$RUN_ID" != "null"
+          mkdir -p /tmp/experiment032
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name experiment-032-evidence --dir /tmp/experiment032
+          REPORT="$(find /tmp/experiment032 -name report.json -print -quit)"
+          test -n "$REPORT"
+          RUN_ID="$RUN_ID" REPORT="$REPORT" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report=json.loads(Path(os.environ['REPORT']).read_text())
+          compact={k:report.get(k) for k in (
+              'evaluation_seeds','n_seeds_per_cell','cell_count','strategies','audit_seeds',
+              'bootstrap_seed','bootstrap_resamples','hypotheses','accept_threshold',
+              'wrong_action_cost','fallback_cost','context_vote_formula','no_context_fitting',
+              'summary_row_count','audit_row_count')}
+          body=(
+              'Recovered completed evidence pointer for Experiment 032 after registry-only repair.\n\n'
+              f"- run_id: {os.environ['RUN_ID']}\n"
+              ' - head_sha: b4cdf2d67aa4a7979fa4541e4c10bce38b0754d6\n'
+              ' - artifact_name: experiment-032-evidence\n'
+              ' - status: completed\n'
+              ' - recovery: existing successful artifact only; no scientific evaluation rerun\n'
+              ' - full_report: report.json in recovered `experiment-032-evidence` artifact\n\n'
+              '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/experiment032_issue.md').write_text(body)
+          PY
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "Experiment 032 evidence run $RUN_ID" --body-file /tmp/experiment032_issue.md
