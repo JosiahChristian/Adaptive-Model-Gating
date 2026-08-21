@@ -1,0 +1,42 @@
+name: Experiment 032 Report Recovery
+on:
+  push:
+    paths: [evaluation_requests/experiment_032_report_recovery.request]
+permissions:
+  actions: read
+  contents: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover completed Experiment 032 report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: b4cdf2d67aa4a7979fa4541e4c10bce38b0754d6
+        run: |
+          set -euo pipefail
+          RUN_ID="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/experiment-032-requested.yml/runs?head_sha=$TARGET_SHA&status=success&per_page=20" --jq '.workflow_runs | sort_by(.created_at) | last | .id')"
+          test -n "$RUN_ID" && test "$RUN_ID" != "null"
+          mkdir -p /tmp/experiment032
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name experiment-032-evidence --dir /tmp/experiment032
+          REPORT="$(find /tmp/experiment032 -name report.json -print -quit)"
+          test -n "$REPORT"
+          mkdir -p research/completed
+          cp "$REPORT" research/completed/experiment_032_report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('research/completed/experiment_032_report.json')
+          r=json.loads(p.read_text())
+          assert r.get('evaluation_seeds') == [32000,32999], r.get('evaluation_seeds')
+          assert r.get('cell_count') == 17, r.get('cell_count')
+          assert r.get('summary_row_count') == 51000, r.get('summary_row_count')
+          assert r.get('audit_row_count') == 229500, r.get('audit_row_count')
+          print(json.dumps({'hypotheses':r.get('hypotheses'),'summary_row_count':r.get('summary_row_count'),'audit_row_count':r.get('audit_row_count')},indent=2))
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add research/completed/experiment_032_report.json
+          git commit -m "Recover completed Experiment 032 report" || exit 0
+          git push
