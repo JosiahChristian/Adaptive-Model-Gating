@@ -11,7 +11,6 @@ from experiment_029 import ACCEPT_THRESHOLD,WRONG_COST,FALLBACK_COST,TRIAD,_anno
 from experiment_032 import COMPOSED_STRATEGY,_run_composed_gate,run_experiment_032_strategy
 from experiment_035 import NOISE_FAMILIES,generate_experiment_035_stream
 from experiment_022 import bind_stressed_stream
-from run_experiment_021 import calibrations
 
 ROBUST_STRATEGY='student_t3_directed_covariance_context_composed_risk_gate'
 STRATEGIES=(ROBUST_STRATEGY,COMPOSED_STRATEGY,TRIAD)
@@ -34,8 +33,7 @@ def frozen_cells():
 CELLS=frozen_cells()
 
 def generate_experiment_036_stream(seed,c):
-    if c['noise_family']=='gaussian':
-        return generate_stress_stream(seed,c)
+    if c['noise_family']=='gaussian':return generate_stress_stream(seed,c)
     return generate_experiment_035_stream(seed,c)
 
 @contextmanager
@@ -51,7 +49,6 @@ def bind_experiment_036_stream(stream):
         for m,n,v in reversed(old):setattr(m,n,v)
 
 def _precision_quad(v,var,cov):
-    # Student-t scatter = inherited covariance * (nu-2)/nu = covariance/3.
     sv=var/3.0;sc=cov/3.0;det=sv*sv-sc*sc
     if det<=0:raise FloatingPointError((sv,sc))
     q=0.0
@@ -59,23 +56,16 @@ def _precision_quad(v,var,cov):
         a,b=float(v[i]),float(v[j]);q+=(sv*(a*a+b*b)-2.0*sc*a*b)/det
     return q
 
-def _log_t_kernel(v,var,cov):
-    q=_precision_quad(v,var,cov)
-    return -0.5*(NU+6.0)*log(1.0+q/NU)
-
-def _log_halfnormal(beta):
-    return log(sqrt(2.0/3.141592653589793)/BETA_SCALE)-0.5*(beta/BETA_SCALE)**2
-
+def _log_t_kernel(v,var,cov):return -0.5*(NU+6.0)*log(1.0+_precision_quad(v,var,cov)/NU)
+def _log_halfnormal(beta):return log(sqrt(2.0/3.141592653589793)/BETA_SCALE)-0.5*(beta/BETA_SCALE)**2
 def _logsumexp(xs):
     m=max(xs);return m+log(sum(exp(x-m) for x in xs))
-
 def posterior_from_student_t(y,var,cov):
     y=tuple(float(x) for x in y);logs={'H_null':log(0.25)+_log_t_kernel(y,var,cov)}
     for h,u in TOPOLOGY_DIRECTIONS.items():
         terms=[]
         for idx,beta in enumerate(BETA_GRID):
-            r=tuple(y[k]-beta*float(u[k]) for k in range(6))
-            w=0.5 if idx in (0,len(BETA_GRID)-1) else 1.0
+            r=tuple(y[k]-beta*float(u[k]) for k in range(6));w=0.5 if idx in (0,len(BETA_GRID)-1) else 1.0
             terms.append(_log_t_kernel(r,var,cov)+_log_halfnormal(beta)+log(w*BETA_STEP))
         logs[h]=log(0.25)+_logsumexp(terms)
     m=max(logs.values());w={h:exp(logs[h]-m) for h in HYPOTHESES};z=sum(w.values());post={h:w[h]/z for h in HYPOTHESES}
@@ -98,8 +88,7 @@ def run_experiment_036_strategy(seed,c,strategy,vals):
     if strategy!=ROBUST_STRATEGY:
         with bind_experiment_036_stream(stream):rows=run_experiment_032_strategy(seed,c,strategy,vals)
     else:
-        s=inject_symmetric_round5(stream);groups,accepted,abstain,stop,path=infer_robust(s);ann=_annotation(s,groups,accepted,abstain,stop,path)
-        tau,kappa,k3,la,lb,lc,lab,lac,lbc,*_=vals
+        s=inject_symmetric_round5(stream);groups,accepted,abstain,stop,path=infer_robust(s);ann=_annotation(s,groups,accepted,abstain,stop,path);tau,kappa,k3,la,lb,lc,lab,lac,lbc,*_=vals
         if abstain:
             with bind_stressed_stream(s):
                 from experiment_022 import run_experiment_022_strategy
