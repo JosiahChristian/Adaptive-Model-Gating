@@ -1,0 +1,1 @@
+Recover the newest non-expired `experiment-032-evidence` artifact directly from GitHub Actions, verify the frozen 17-cell/1000-seed row counts, and publish the compact H1-H11 report. Do not rerun any Experiment 032 scientific shard.
