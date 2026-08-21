@@ -1,0 +1,5 @@
+Experiment 028 directed-response covariance calibration evaluation requested.
+
+Scientific specification frozen prospectively at commit b23dfef6fa3e81a2a2c4beff761987681672a124.
+
+This marker requests execution only. It does not alter the frozen six-response evidence representation, analytic shared-baseline covariance, uniform topology prior, beta prior, fresh seed range, comparator, hypotheses, calibration criteria, or interpretation rule.
