@@ -1,0 +1,42 @@
+name: Experiment 032 Artifact Recovery
+on:
+  push:
+    paths: [evaluation_requests/experiment_032_artifact_recovery.request]
+permissions:
+  actions: read
+  contents: read
+  issues: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover newest completed Experiment 032 evidence artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ARTIFACT_ID="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=experiment-032-evidence&per_page=100" --jq '[.artifacts[] | select(.expired==false)] | sort_by(.created_at) | last | .id')"
+          test -n "$ARTIFACT_ID" && test "$ARTIFACT_ID" != "null"
+          mkdir -p /tmp/experiment032
+          gh api -H 'Accept: application/vnd.github+json' "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > /tmp/experiment032/evidence.zip
+          unzip -q /tmp/experiment032/evidence.zip -d /tmp/experiment032/evidence
+          REPORT="$(find /tmp/experiment032/evidence -name report.json -print -quit)"
+          test -n "$REPORT"
+          REPORT="$REPORT" ARTIFACT_ID="$ARTIFACT_ID" python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path(os.environ['REPORT']).read_text())
+          assert r.get('evaluation_seeds') == [32000,32999], r.get('evaluation_seeds')
+          assert r.get('cell_count') == 17, r.get('cell_count')
+          assert r.get('summary_row_count') == 51000, r.get('summary_row_count')
+          assert r.get('audit_row_count') == 229500, r.get('audit_row_count')
+          compact={k:r.get(k) for k in ('evaluation_seeds','n_seeds_per_cell','cell_count','strategies','audit_seeds','bootstrap_seed','bootstrap_resamples','hypotheses','accept_threshold','wrong_action_cost','fallback_cost','context_vote_formula','no_context_fitting','summary_row_count','audit_row_count','code_commit')}
+          body=('Recovered completed Experiment 032 evidence directly from the existing Actions artifact.\n\n'
+                f"- artifact_id: {os.environ['ARTIFACT_ID']}\n"
+                '- artifact_name: experiment-032-evidence\n'
+                '- recovery: existing artifact only; no scientific shard rerun\n\n'
+                '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/experiment032_issue.md').write_text(body)
+          PY
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "Experiment 032 recovered evidence" --body-file /tmp/experiment032_issue.md
