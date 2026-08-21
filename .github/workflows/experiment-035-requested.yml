@@ -1,0 +1,83 @@
+name: Experiment 035 Requested Evaluation
+on:
+  push:
+    paths: [evaluation_requests/experiment_035.request]
+permissions: {contents: read, issues: write}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m compileall -q src scripts
+      - run: python scripts/smoke_experiment_035.py
+  prepare:
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      cells: ${{ steps.matrix.outputs.cells }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          sys.path.insert(0,'src')
+          from experiment_035 import CELLS
+          print('cells='+json.dumps([{'index':i,'tag':f'cell-{i:02d}','label':c['label']} for i,c in enumerate(CELLS)],separators=(',',':')))
+          PY
+  evaluate-shards:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.cells) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Run frozen Experiment 035 cell
+        run: python scripts/run_experiment_035_shard.py --cell-index ${{ matrix.index }} --out results/experiment_035_shards/${{ matrix.tag }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: '${{ matrix.tag }}'
+          path: 'results/experiment_035_shards/${{ matrix.tag }}/'
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 1
+  evaluate:
+    needs: evaluate-shards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with: {path: results/experiment_035_shards}
+      - run: python scripts/merge_experiment_035_shards.py --input-root results/experiment_035_shards --out results/experiment_035
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-035-evidence
+          path: results/experiment_035/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register completed evidence pointer
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_035/report.json').read_text())
+          compact={k:r.get(k) for k in ('evaluation_seeds','n_seeds_per_cell','cell_count','strategies','audit_seeds','bootstrap_seed','bootstrap_resamples','hypotheses','accept_threshold','wrong_action_cost','fallback_cost','posterior_likelihood','noise_definitions','no_recalibration','summary_row_count','posterior_row_count','audit_row_count')}
+          body=('Automated completed evidence pointer for Experiment 035.\n\n'
+                f"- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- artifact_name: experiment-035-evidence\n- status: completed\n'
+                '- execution: 12-cell, 1,000-seed non-Gaussian likelihood-transfer evaluation\n'
+                '- full_report: results/experiment_035/report.json inside artifact `experiment-035-evidence`\n\n'
+                '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/experiment035_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 035 evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment035_issue.md
