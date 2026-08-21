@@ -1,0 +1,6 @@
+Experiment 029 sequential posterior-risk deployment evaluation requested.
+
+Scientific specification frozen prospectively at commit 6fb6ca4b3637635d8786cb1b1e3f4e3062fda6ec.
+Validated probability model inherited unchanged from Experiment 028.
+
+This marker requests execution only. It does not alter the posterior, loss ratio, 0.99 acceptance threshold, diagnostic schedule, fallback, evaluation cells, fresh seed range, hypotheses, or success criteria.
