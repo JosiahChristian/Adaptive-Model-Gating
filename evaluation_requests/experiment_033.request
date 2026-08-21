@@ -1,0 +1,5 @@
+Experiment 033 requested evaluation marker.
+
+Scientific specification frozen at commit: 95fb0cfe1425842b37f68c9df08eb42b36a6940e
+
+Run only the dedicated Experiment 033 Requested Evaluation workflow. Preserve the Experiment-028 directed-covariance posterior, Experiment-029 0.99 topology-risk threshold / 100:1 loss ratio, Experiment-031 current-time context-vote formula, Experiment-032 causal composition, inherited probe schedule, triad primary-fault veto, and exact triad fallback unchanged. No outcome-driven retuning is permitted.
