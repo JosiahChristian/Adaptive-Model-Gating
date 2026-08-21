@@ -55,7 +55,7 @@ def summary(rows,c,comparator_rows=None):
 def wilson_upper(k,n):
  p=k/n;den=1+Z*Z/n;center=(p+Z*Z/(2*n))/den;rad=Z*math.sqrt(p*(1-p)/n+Z*Z/(4*n*n))/den;return min(1.,center+rad)
 def rates(q):
- acc=[x for x in q if x['coverage']];wrong=sum(x['wrong_accept'] for x in q);correct=sum(x['correct'] for x in acc)
+ acc=[x for x in q if int(float(x['coverage']))];wrong=sum(int(float(x['wrong_accept'])) for x in q);correct=sum(int(float(x['correct'])) for x in acc)
  return {'coverage':len(acc)/len(q),'accepted_n':len(acc),'wrong_n':wrong,'wrong_acceptance':wrong/len(q),'wrong_wilson_upper_95':wilson_upper(wrong,len(q)),'precision':correct/len(acc) if acc else None}
 def avg(q,k):return sum(float(x[k]) for x in q)/len(q)
 def ci(v):return list(paired_bootstrap_ci(v,seed=BOOTSTRAP_SEED,reps=10000))
@@ -67,7 +67,7 @@ def report_from(rows,vals):
   cr=[r for r in rows if r['label']==c['label']];by={(int(r['seed']),r['strategy']):r for r in cr};qs={st:[by[(s,st)] for s in SEEDS] for st in STRATEGIES};rr={st:rates(qs[st]) for st in STRATEGIES}
   for s in SEEDS:
    a,b=by[(s,COMPOSED_STRATEGY)],by[(s,POSTERIOR_RISK_STRATEGY)]
-   if any((a[k]!=b[k]) for k in ('coverage','abstain','stop_round','deploy_hypothesis')) or abs(a['posterior_at_deployment']-b['posterior_at_deployment'])>1e-12 or abs(a['probe_energy']-b['probe_energy'])>1e-12:H['H1']=False
+   if any((a[k]!=b[k]) for k in ('coverage','abstain','stop_round','deploy_hypothesis')) or abs(float(a['posterior_at_deployment'])-float(b['posterior_at_deployment']))>1e-12 or abs(float(a['probe_energy'])-float(b['probe_energy']))>1e-12:H['H1']=False
   if c['label'] in frontier and rr[COMPOSED_STRATEGY]['wrong_wilson_upper_95']>.01:H['H2']=False
   if c['label']=='g0.500_n1.50' and (rr[COMPOSED_STRATEGY]['coverage']<.85 or (rr[COMPOSED_STRATEGY]['precision'] or 0)<.99):H['H3']=False
   if c['label']=='g0.500_n1.25' and rr[COMPOSED_STRATEGY]['coverage']<.90:H['H3']=False
@@ -80,12 +80,12 @@ def report_from(rows,vals):
   if c['label']=='common_mode_1.00' and (excess32>35.0 or reduction is None or reduction<.80):H['H5']=False
   if c['label'] in ('g0.500_n1.00','g0.500_n1.25','g0.500_n1.50') and (losses[COMPOSED_STRATEGY]>losses[POSTERIOR_RISK_STRATEGY]+.02 or slopes[COMPOSED_STRATEGY]>slopes[POSTERIOR_RISK_STRATEGY]+.02):H['H6']=False
   if c['label'] in ('healthy','drift_0.50','primary_fault_0.50') and losses[COMPOSED_STRATEGY]>losses[TRIAD]+.02:H['H7']=False
-  if sum(x['causal_violation_count'] for x in qs[COMPOSED_STRATEGY]):H['H8']=False
-  if sum(x['triad_veto_adapt_violations'] for x in qs[COMPOSED_STRATEGY]):H['H9']=False
+  if sum(int(float(x['causal_violation_count'])) for x in qs[COMPOSED_STRATEGY]):H['H8']=False
+  if sum(int(float(x['triad_veto_adapt_violations'])) for x in qs[COMPOSED_STRATEGY]):H['H9']=False
   fallback=0
   for s in SEEDS:
    a,t=by[(s,COMPOSED_STRATEGY)],by[(s,TRIAD)]
-   if a['abstain'] and (a['adapt_signature']!=t['adapt_signature'] or a['operational_loss_401_600']!=t['operational_loss_401_600']):fallback+=1
+   if int(float(a['abstain'])) and (a['adapt_signature']!=t['adapt_signature'] or float(a['operational_loss_401_600'])!=float(t['operational_loss_401_600'])):fallback+=1
   if fallback:H['H10']=False
   out[c['label']]={'cell':c,'rates':rr,'mean_probe_energy':{st:avg(qs[st],'probe_energy') for st in STRATEGIES},'mean_operational_loss_401_600':losses,'mean_final_slope_error_abs':slopes,
                    'mean_context_vote_fraction_401_420':avg(qs[COMPOSED_STRATEGY],'context_vote_fraction_401_420'),'mean_context_vote_fraction_401_600':avg(qs[COMPOSED_STRATEGY],'context_vote_fraction_401_600'),
