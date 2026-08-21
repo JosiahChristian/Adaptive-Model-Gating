@@ -1,0 +1,5 @@
+Experiment 036 requested evaluation marker.
+
+Scientific specification frozen prospectively at commit: a7c53a0443ea84718c53c9e790f83a97d75c3104
+
+Run only the dedicated Experiment 036 Requested Evaluation workflow. Preserve the fixed multivariate Student-t likelihood with nu=3, inherited covariance geometry with variance-matched scatter Sigma/3, inherited half-normal amplitude prior evaluated on the frozen beta grid 0..1.20 step 0.01, the 0.99 / 100:1 action-risk rule, Experiment-031 causal context rule, Experiment-032 composition, triad primary-fault veto/fallback, probe schedule, and all inherited calibration constants. Evaluate Gaussian ID plus the exact Experiment-035 Laplace, Student-t3, and contaminated-Gaussian diagnostic-noise families on fresh seeds 36000..36999. No outcome-driven retuning is permitted.
