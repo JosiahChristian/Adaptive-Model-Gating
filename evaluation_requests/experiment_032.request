@@ -3,3 +3,5 @@ Experiment 032 requested evaluation marker.
 Scientific specification frozen at commit: 6c830ab8ad55db2c99750dae9d43cc104030ae2a
 
 Run only the dedicated Experiment 032 Requested Evaluation workflow. Preserve the Experiment-028 directed-covariance posterior, Experiment-029 0.99 topology-risk threshold, inherited probe schedule, triad rule, and causal Experiment-031 per-time context-vote formula exactly as frozen. No outcome-driven retuning is permitted.
+
+Execution-only validation repair applied: smoke/H8 now distinguish direct context-mediated interventions from downstream trajectory consequences.
