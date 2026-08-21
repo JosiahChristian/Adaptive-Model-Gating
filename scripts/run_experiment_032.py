@@ -91,10 +91,11 @@ def report_from(rows,vals):
                    'paired_loss_vs_triad_mean':excess32,'paired_loss_vs_triad_ci':ci(d32t),'paired_loss_vs_029_mean':sum(d3229)/1000,'paired_loss_vs_029_ci':ci(d3229),
                    'experiment029_excess_vs_triad_mean':excess29,'fraction_excess_reduction_vs_029':reduction,'fallback_exact_mismatches':fallback}
   if c.get('operational_truth_unresolved'):out[c['label']]['operational_truth_unresolved']=True
- *_,k3,la,lb,lc,lab,lac,lbc=vals[:9]
+ tau,kappa,k3,la,lb,lc,lab,lac,lbc=vals[:9]
+ inherited={'tau':tau,'kappa':kappa,'k3':k3,'la':la,'lb':lb,'lc':lc,'lab':lab,'lac':lac,'lbc':lbc}
  H['H11']=ACCEPT_THRESHOLD==.99 and WRONG_COST==100.0 and FALLBACK_COST==1.0
  return {'evaluation_seeds':[32000,32999],'n_seeds_per_cell':1000,'cell_count':17,'strategies':STRATEGIES,'audit_seeds':sorted(AUDIT),'bootstrap_seed':BOOTSTRAP_SEED,'bootstrap_resamples':10000,'hypotheses':H,
          'accept_threshold':ACCEPT_THRESHOLD,'wrong_action_cost':WRONG_COST,'fallback_cost':FALLBACK_COST,'context_vote_formula':'triad_consistent * 1[m_a+m_b+m_c>=2] * 1[d_ab+d_ac+d_bc==0] at current t only',
-         'no_context_fitting':True,'code_commit':os.environ.get('GITHUB_SHA','unknown'),'cells':out}
+         'inherited_context_thresholds':inherited,'no_context_fitting':True,'posterior_model':'Experiment-028 directed covariance, frozen','code_commit':os.environ.get('GITHUB_SHA','unknown'),'cells':out}
 
 def calibration_values():return calibrations()
