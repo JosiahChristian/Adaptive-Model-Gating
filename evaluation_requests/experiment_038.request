@@ -1,0 +1,5 @@
+Experiment 038 requested evaluation marker.
+
+Scientific specification frozen at commit: c17cb07c19f25bdc9a582145049e686555af8c59
+
+Run only the dedicated Experiment 038 Requested Evaluation workflow. Preserve the Huber c=1.345 likelihood, inherited covariance whitening, beta grid/prior, Experiment-032 Gaussian comparator, Experiment-036 Student-t3 comparator, Experiment-037 model-average comparator, 0.99 topology-risk threshold, 100:1 costs, Experiment-031 causal context vote, Experiment-032 composition, inherited triad veto/fallback, distributions, seeds, cells, and all H1-H10 criteria exactly as frozen. No outcome-driven tuning is permitted.
