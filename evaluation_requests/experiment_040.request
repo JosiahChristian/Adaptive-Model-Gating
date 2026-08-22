@@ -1,0 +1,6 @@
+Experiment 040 evaluation requested after successful preflight validation.
+
+Frozen scientific contract: GitHub issue #85.
+Preflight evidence: GitHub issue #86 (compile success, smoke success).
+
+No Experiment-040 outcome has been inspected or used for tuning. Evaluate the prospectively frozen local 0.95 Gaussian / 0.05 Student-t3 per-block contamination mixture on seeds 40000..40999 under the unchanged deployment contract and frozen H1-H11 criteria.
