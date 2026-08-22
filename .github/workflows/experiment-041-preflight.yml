@@ -51,3 +51,4 @@ jobs:
         run: |
           test '${{ steps.compile.outcome }}' = 'success'
           test '${{ steps.smoke.outcome }}' = 'success'
+# Prospective validation only; evaluation remains separately requested after a green preflight.
