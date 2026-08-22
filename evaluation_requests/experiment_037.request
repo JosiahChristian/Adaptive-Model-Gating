@@ -1,0 +1,5 @@
+Experiment 037 requested evaluation marker.
+
+Scientific specification frozen by issue #69 and research/experiment_037_spec.md.
+
+Run only the dedicated Experiment 037 Requested Evaluation workflow. Preserve equal likelihood-family prior 0.5 Gaussian / 0.5 Student-t3, proper normalized family likelihoods, inherited covariance geometry, Student-t df=3, HalfNormal amplitude prior, beta grid 0..1.20 step 0.01, topology prior, Experiment-029 0.99 threshold and 100:1 costs, Experiment-031 context vote, Experiment-032 composition, triad veto/fallback, probe schedule, and all calibration constants exactly as frozen. No outcome-driven fitting, model-weight tuning, threshold changes, clipping, or selection rules are permitted.
