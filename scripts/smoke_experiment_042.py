@@ -24,3 +24,4 @@ def main():
    if not rows or len(rows)!=900:raise AssertionError((c['label'],st,len(rows)))
  print('Experiment 042 smoke OK')
 if __name__=='__main__':main()
+# Trigger prospective Experiment 042 preflight after workflow installation.
