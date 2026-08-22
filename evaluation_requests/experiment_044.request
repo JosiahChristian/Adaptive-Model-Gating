@@ -1,0 +1,6 @@
+Experiment 044 evaluation requested only after successful prospective preflight.
+
+Frozen scientific contract: issue #110.
+Green preflight evidence: issue #111, run 32601341903, compile success, smoke success.
+
+Evaluate the preregistered 16 cells on fresh seeds 44000..44999 with no tuning, using the frozen directional-persistence Gaussian rule and fixed comparators/criteria from issue #110.
