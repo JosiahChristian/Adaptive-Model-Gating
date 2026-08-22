@@ -18,9 +18,38 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
-      - run: python -m compileall -q src scripts
-      - run: python scripts/smoke_experiment_039.py
-      - name: Register preflight success
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 039 smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_039.py > /tmp/smoke.log 2>&1
+      - name: Register preflight outcome
+        if: always()
         env: {GH_TOKEN: '${{ github.token }}'}
         run: |
-          gh issue create --title "Experiment 039 preflight passed $GITHUB_RUN_ID" --body "Experiment 039 preflight completed successfully.\n\n- run_id: $GITHUB_RUN_ID\n- head_sha: $GITHUB_SHA\n- checks: compileall + smoke_experiment_039.py\n- status: passed\n- evaluation_requested: false"
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          {
+            echo "Experiment 039 preflight completed."
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo "- evaluation_requested: false"
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            echo '```'
+          } > /tmp/preflight.md
+          gh issue create --title "Experiment 039 preflight $compile_status/$smoke_status $GITHUB_RUN_ID" --body-file /tmp/preflight.md
+      - name: Enforce preflight success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
