@@ -1,0 +1,3 @@
+Experiment 039 evaluation requested after prospective freeze in issue #77 and repository specification research/experiment_039_spec.md.
+
+The workflow must validate compileall and smoke_experiment_039.py before any evaluation shard is permitted to run. No Experiment-039 outcomes have been inspected or used for tuning.
