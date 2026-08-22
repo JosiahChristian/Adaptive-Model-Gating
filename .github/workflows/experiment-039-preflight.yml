@@ -1,0 +1,21 @@
+name: Experiment 039 Preflight
+on:
+  push:
+    paths:
+      - src/experiment_039.py
+      - scripts/run_experiment_039.py
+      - scripts/run_experiment_039_shard.py
+      - scripts/merge_experiment_039_shards.py
+      - scripts/smoke_experiment_039.py
+      - research/experiment_039_spec.md
+      - .github/workflows/experiment-039-preflight.yml
+      - .github/workflows/experiment-039-requested.yml
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m compileall -q src scripts
+      - run: python scripts/smoke_experiment_039.py
