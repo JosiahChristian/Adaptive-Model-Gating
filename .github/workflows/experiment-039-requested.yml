@@ -10,8 +10,40 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
-      - run: python -m compileall -q src scripts
-      - run: python scripts/smoke_experiment_039.py
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 039 smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_039.py > /tmp/smoke.log 2>&1
+      - name: Register requested validation outcome
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          {
+            echo "Experiment 039 requested-evaluation validation completed."
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            echo '```'
+          } > /tmp/validation.md
+          gh issue create --title "Experiment 039 requested validation $compile_status/$smoke_status $GITHUB_RUN_ID" --body-file /tmp/validation.md
+      - name: Enforce requested validation success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
   prepare:
     needs: validate
     runs-on: ubuntu-latest
@@ -70,7 +102,7 @@ jobs:
           import json,os
           from pathlib import Path
           r=json.loads(Path('results/experiment_039/report.json').read_text())
-          compact={k:r.get(k) for k in ('evaluation_seeds','n_seeds_per_cell','cell_count','strategies','audit_seeds','bootstrap_seed','bootstrap_resamples','hypotheses','accept_threshold','wrong_action_cost','fallback_cost','radial_huber_cutoff','cutoff_definition','likelihood','amplitude_prior','no_tuning','summary_row_count','posterior_row_count','audit_row_count')}
+          compact={k:r.get(k) for k in ('evaluation_seeds','n_seeds_per_cell','cell_count','strategies','audit_seeds','bootstrap_seed','bootstrap_resamples','hypotheses','accept_threshold','wrong_action_cost','fallback_cost','radial_huber_cutoff','cutoff_definition','likelihood','radial_huber_normalization_2d','whitening','context_rule','amplitude_prior','no_tuning','summary_row_count','posterior_row_count','audit_row_count')}
           body=('Automated completed evidence pointer for Experiment 039.\n\n'
                 f"- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n"
                 '- artifact_name: experiment-039-evidence\n- status: completed\n'
