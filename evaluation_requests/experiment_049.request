@@ -1,0 +1,6 @@
+Experiment 049 evaluation requested after prospective freeze and successful preflight validation.
+
+Operative prospective specification: GitHub issue #136.
+Successful preflight evidence: GitHub issues #137 and #138.
+
+Evaluate the frozen Experiment 049 implementation exactly as specified, using fresh seeds 49000..49999, all 16 preregistered cells, all frozen comparators, audit seeds 49000..49004, and bootstrap seed 49049. Preserve H1-H15 exactly. No Experiment-049 outcomes were inspected before this request. No pairing, sign cutoff, sample count, split, score, deployment threshold, or E threshold may be tuned from Experiment-049 outcomes.
