@@ -1,0 +1,49 @@
+name: Experiment 047 Merge Recovery
+on:
+  push:
+    paths: [.github/workflows/experiment-047-merge-recovery.yml]
+permissions:
+  actions: read
+  contents: read
+  issues: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 32638584249
+          pattern: cell-*
+          path: results/experiment_047_shards
+          merge-multiple: false
+      - run: python scripts/merge_experiment_047_shards.py --input-root results/experiment_047_shards --out results/experiment_047
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-047-evidence
+          path: results/experiment_047/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register recovered completed evidence pointer
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_047/report.json').read_text())
+          keys=('evaluation_seeds','n_seeds_per_cell','cell_count','strategies','audit_seeds','bootstrap_seed','bootstrap_resamples','hypotheses','e_threshold','wrong_action_cost','fallback_cost','sigma_probe','vector_order','amplitudes','amplitude_normalization','covariance_blocks','discovery_rule','confirmation_rule','context_rule','symmetry_assumption','full_five_round_latency','no_tuning','operative_spec_issue','mean_selection_rate_improvement_over_experiment046','mean_coverage_improvement_over_experiment046','summary_row_count','audit_row_count')
+          compact={k:r.get(k) for k in keys}
+          body=('Recovered completed evidence pointer for Experiment 047 after correcting only the deterministic audit-row completeness invariant.\n\n'
+                '- source_shard_run_id: 32638584249\n'
+                f"- recovery_run_id: {os.environ['GITHUB_RUN_ID']}\n- recovery_head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- artifact_name: experiment-047-evidence\n- status: completed\n'
+                '- source evaluation: all 16 original frozen shards from run 32638584249; no shard or scientific outcome was rerun\n'
+                '- full_report: results/experiment_047/report.json inside artifact `experiment-047-evidence`\n\n'
+                '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/experiment047_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 047 recovered evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment047_issue.md
