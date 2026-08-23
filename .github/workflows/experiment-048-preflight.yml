@@ -53,3 +53,4 @@ jobs:
           test '${{ steps.compile.outcome }}' = 'success'
           test '${{ steps.smoke.outcome }}' = 'success'
 # Prospective validation only; evaluation remains separately requested after a green preflight.
+# Triggered only after the workflow is registered on main.
