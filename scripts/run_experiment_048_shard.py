@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+import argparse,json,sys
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'src'));sys.path.insert(0,str(ROOT/'scripts'))
+from experiment_048 import CELLS,STRATEGIES,run_experiment_048_strategy
+from run_experiment_048 import SEEDS,AUDIT,summary,write_csv,calibration_values
+
+def main():
+ ap=argparse.ArgumentParser();ap.add_argument('--cell-index',type=int,required=True);ap.add_argument('--out',required=True);a=ap.parse_args();c=CELLS[a.cell_index];out=Path(a.out);out.mkdir(parents=True,exist_ok=True);vals=calibration_values();summ=[]
+ with (out/'audit.jsonl').open('w',encoding='utf-8') as af:
+  for seed in SEEDS:
+   for st in STRATEGIES:
+    rows=run_experiment_048_strategy(seed,c,st,vals);summ.append(summary(rows,c))
+    if seed in AUDIT:
+     for r in rows:af.write(json.dumps(r,separators=(',',':'))+'\n')
+ write_csv(out/'summary.csv',summ);(out/'meta.json').write_text(json.dumps({'cell_index':a.cell_index,'label':c['label'],'summary_rows':len(summ)},indent=2))
+ if len(summ)!=11000:raise AssertionError(len(summ))
+if __name__=='__main__':main()
