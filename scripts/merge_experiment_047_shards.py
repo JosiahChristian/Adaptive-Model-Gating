@@ -16,7 +16,7 @@ def main():
    d=root/f'cell-{i:02d}';summ.extend(read_csv(d/'summary.csv'))
    with (d/'audit.jsonl').open(encoding='utf-8') as src:
     for line in src:dest.write(line);audit_count+=1
- expected_summary=16*1000*10;expected_audit=16*5*10*600
+ expected_summary=16*1000*10;expected_audit=16*5*10*900
  if len(summ)!=expected_summary or audit_count!=expected_audit:raise AssertionError((len(summ),audit_count,expected_summary,expected_audit))
  write_csv(out/'summary.csv',summ);report=report_from(summ);report['summary_row_count']=len(summ);report['audit_row_count']=audit_count
  (out/'report.json').write_text(json.dumps(report,indent=2,sort_keys=True))
