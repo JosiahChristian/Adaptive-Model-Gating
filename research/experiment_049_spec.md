@@ -11,3 +11,5 @@ Deployment remains frozen: wrong-action cost 100, fallback cost 1, Experiment-03
 Evaluation: Gaussian, Laplace, Student-t3, and contaminated-Gaussian diagnostic noise; gain {0.50,0.425} x noise scale {1.00,1.50}; H_ab drift/fault magnitude 0.50; 16 cells; seeds 49000..49999; audit 49000..49004; bootstrap seed 49049.
 
 Frozen H1-H15 and interpretation rule are exactly those in issue #136. Any failure is preserved. No Experiment-049 outcome may be inspected before implementation and preflight are frozen.
+
+Preflight trigger marker: implementation/specification only; no Experiment-049 evaluation has been requested.
