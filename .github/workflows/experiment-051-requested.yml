@@ -1,0 +1,115 @@
+name: Experiment 051 Requested Evaluation
+on:
+  push:
+    paths: [evaluation_requests/experiment_051.request]
+permissions: {contents: read, issues: write}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 051 smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_051.py > /tmp/smoke.log 2>&1
+      - name: Register requested validation outcome
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          {
+            echo "Experiment 051 requested-evaluation validation completed."
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            echo '```'
+          } > /tmp/validation.md
+          gh issue create --title "Experiment 051 requested validation $compile_status/$smoke_status $GITHUB_RUN_ID" --body-file /tmp/validation.md
+      - name: Enforce requested validation success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
+  prepare:
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      cells: ${{ steps.matrix.outputs.cells }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          sys.path.insert(0,'src')
+          from experiment_051 import CELLS
+          print('cells='+json.dumps([{'index':i,'dir':f'cell-{i:02d}','label':c['label']} for i,c in enumerate(CELLS)],separators=(',',':')))
+          PY
+  evaluate-shards:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.cells) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python scripts/run_experiment_051_shard.py --cell-index ${{ matrix.index }} --out results/experiment_051_shards/${{ matrix.dir }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.dir }}
+          path: results/experiment_051_shards/${{ matrix.dir }}/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 1
+  evaluate:
+    needs: evaluate-shards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with: {path: results/experiment_051_shards}
+      - run: python scripts/merge_experiment_051_shards.py --input-root results/experiment_051_shards --out results/experiment_051
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-051-evidence
+          path: results/experiment_051/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register completed evidence pointer
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_051/report.json').read_text())
+          keys=('evaluation_seeds','n_seeds_per_cell','cell_count','strategies','audit_seeds','bootstrap_seed','bootstrap_resamples','hypotheses','e_threshold','wrong_action_cost','fallback_cost','contrast_count','w_cutoff','p167_numerator','p167_denominator','p167','p166_numerator','p166_denominator','p166','accept_e','validity_assumptions','primary_zero_count','primary_absolute_tie_count','stress_panel','experiment050_reference_mean_coverage','mean_primary_coverage','mean_coverage_improvement_over_experiment049','mean_cross_improvement_over_experiment049','resource_accounting','full_five_round_latency','no_tuning','operative_spec_issue','summary_row_count','audit_row_count')
+          compact={k:r.get(k) for k in keys}
+          body=('Automated completed evidence pointer for Experiment 051.\n\n'
+                f"- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- artifact_name: experiment-051-evidence\n- status: completed\n'
+                '- execution: 16-cell, 1,000-seed covariance-matched discovery with exact 20-contrast signed-rank confirmation plus four frozen 1,000-seed misspecification stresses\n'
+                '- full_report: results/experiment_051/report.json inside artifact `experiment-051-evidence`\n\n'
+                '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/experiment051_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 051 evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment051_issue.md
