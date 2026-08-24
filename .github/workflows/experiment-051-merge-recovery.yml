@@ -1,0 +1,46 @@
+name: Experiment 051 Merge Recovery
+on:
+  push:
+    paths: [evaluation_requests/experiment_051_merge_recovery.request]
+permissions:
+  contents: read
+  actions: read
+  issues: write
+jobs:
+  recover-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Download preserved Experiment 051 shard artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 32692629044 --dir results/experiment_051_shards
+      - name: Merge preserved shards with structural audit validation
+        run: python scripts/merge_experiment_051_shards.py --input-root results/experiment_051_shards --out results/experiment_051
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-051-evidence
+          path: results/experiment_051/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register recovered completed evidence pointer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_051/report.json').read_text())
+          keys=('evaluation_seeds','n_seeds_per_cell','cell_count','strategies','audit_seeds','bootstrap_seed','bootstrap_resamples','hypotheses','e_threshold','wrong_action_cost','fallback_cost','contrast_count','w_cutoff','p167_numerator','p167_denominator','p167','p166_numerator','p166_denominator','p166','accept_e','validity_assumptions','primary_zero_count','primary_absolute_tie_count','stress_panel','experiment050_reference_mean_coverage','mean_primary_coverage','mean_coverage_improvement_over_experiment049','mean_cross_improvement_over_experiment049','resource_accounting','full_five_round_latency','no_tuning','operative_spec_issue','summary_row_count','audit_row_count')
+          compact={k:r.get(k) for k in keys}
+          body=('Recovered completed evidence pointer for Experiment 051 using the already-completed 16 shard artifacts from original run 32692629044. No evaluation shard was rerun.\n\n'
+                f"- recovery_run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- source_evaluation_run_id: 32692629044\n- artifact_name: experiment-051-evidence\n- status: completed\n'
+                '- recovery_scope: deterministic merge/post-processing only; frozen science unchanged\n'
+                '- full_report: results/experiment_051/report.json inside artifact `experiment-051-evidence`\n\n'
+                '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/experiment051_recovery_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 051 recovered evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment051_recovery_issue.md
