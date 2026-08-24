@@ -1,0 +1,6 @@
+Experiment 052 full replication evaluation requested after successful prospective preflight.
+
+Operative prospective specification: issue #162.
+Successful preflight: issue #163, run 32737209001, head aaab3d0b2f802e6b322f3cd53c19f8391dc19934.
+
+The evaluation preserves the exact Experiment 051 architecture without modification: W+>=167 signed-rank confirmation, 20 primary-stream confirmation contrasts, fresh primary seeds 52000..52999, fresh M1-M4 stress ranges 5251000..5254999, E=100 action threshold, comparator set, deployment/fallback logic, and frozen H1-H16 replication criteria. No Experiment 052 outcomes were inspected before this request, and no rule, threshold, split, sample count, score, stress generator, resource allocation, or acceptance boundary was changed from the prospective specification.
