@@ -1,0 +1,55 @@
+name: Experiment 051 Preflight
+on:
+  push:
+    paths:
+      - src/experiment_051.py
+      - scripts/run_experiment_051.py
+      - scripts/run_experiment_051_shard.py
+      - scripts/merge_experiment_051_shards.py
+      - scripts/smoke_experiment_051.py
+      - research/experiment_051_spec.md
+      - .github/workflows/experiment-051-preflight.yml
+permissions: {contents: read, issues: write}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 051 smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_051.py > /tmp/smoke.log 2>&1
+      - name: Register preflight outcome
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          {
+            echo "Experiment 051 preflight completed."
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo "- evaluation_requested: false"
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            echo '```'
+          } > /tmp/preflight.md
+          gh issue create --title "Experiment 051 preflight $compile_status/$smoke_status $GITHUB_RUN_ID" --body-file /tmp/preflight.md
+      - name: Enforce preflight success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
+# Prospective validation only; evaluation remains separately requested after a green preflight.
