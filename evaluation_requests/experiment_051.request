@@ -1,0 +1,6 @@
+Experiment 051 full evaluation requested after successful prospective preflight.
+
+Operative prospective specification: issue #153.
+Successful preflight: issue #154, run 32688798167, head 069638e0ba9f452c7b57a35b1a1599071325bf58, compile success, smoke success.
+
+The evaluation implementation preserves the frozen W+>=167 exact signed-rank boundary, 20 primary-stream confirmation contrasts, seeds 51000..51999, the four separately reported misspecification stresses beginning at seed 5151000, E=100 action threshold, comparator set, deployment/fallback logic, and H1-H16 criteria. Experiment 050 preserved reference values used for H9/H11 were read from completed pre-Experiment-051 evidence before this request; no Experiment-051 outcomes were inspected or used to alter any rule, threshold, seed map, split, score, or stress generator.
