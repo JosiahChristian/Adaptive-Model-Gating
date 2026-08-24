@@ -1,0 +1,7 @@
+Experiment 051 merge-only recovery request.
+
+Source evaluation run: 32692629044
+Scope: reuse the 16 already-completed shard artifacts; rerun deterministic merge/post-processing only.
+Frozen science: unchanged from prospective specification issue #153.
+Reason: original merge completeness assertion assumed a fixed audit row count, but audit trajectory lengths are strategy/outcome-path dependent. Recovery validates the complete expected (cell, audit seed, strategy) group set and contiguous, nonduplicate t indices instead of tuning to an observed row total.
+No evaluation shard rerun is authorized by this request.
