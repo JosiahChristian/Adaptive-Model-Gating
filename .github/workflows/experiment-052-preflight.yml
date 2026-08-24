@@ -1,0 +1,35 @@
+name: Experiment 052 Prospective Preflight
+on:
+  push:
+    paths:
+      - 'scripts/run_experiment_052.py'
+      - 'scripts/run_experiment_052_shard.py'
+      - 'scripts/merge_experiment_052_shards.py'
+      - 'scripts/smoke_experiment_052.py'
+      - '.github/workflows/experiment-052-preflight.yml'
+      - 'evaluation_requests/experiment_052.request'
+permissions:
+  contents: read
+  issues: write
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        run: python -m compileall -q src scripts
+      - name: Experiment 052 smoke
+        run: python scripts/smoke_experiment_052.py
+      - name: Register preflight outcome
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import os
+          body=(f"Experiment 052 prospective preflight completed.\n\n- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n- evaluation_requested: false\n- operative_spec_issue: 162\n")
+          open('/tmp/e052_preflight.md','w').write(body)
+          PY
+          gh issue create --title "Experiment 052 preflight ${{ job.status }} $GITHUB_RUN_ID" --body-file /tmp/e052_preflight.md
