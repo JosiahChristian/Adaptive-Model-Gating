@@ -1,0 +1,6 @@
+Experiment 050 evaluation requested after prospective freeze and successful preflight validation.
+
+Operative prospective specification: GitHub issue #145.
+Successful preflight evidence: GitHub issue #146.
+
+Evaluate the frozen Experiment 050 implementation exactly as specified, using fresh primary seeds 50000..50999 and deterministic confirmation-replicate seeds 5050000..5050999, all 16 preregistered cells, all frozen comparators on the primary stream only, audit primary seeds 50000..50004 and mapped replicate seeds, and bootstrap seed 50050. Preserve H1-H16 exactly. No Experiment-050 outcomes were inspected before this request. No seed map, sample count, pairing, sign cutoff, discovery score, deployment threshold, or E threshold may be tuned from Experiment-050 outcomes.
