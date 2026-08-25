@@ -1,0 +1,9 @@
+Experiment 053 full clean-provenance replication evaluation requested after successful prospective preflight.
+
+Operative prospective specification: issue #168.
+Successful preflight: issue #169, run 32810411693, head c2caa842b775653b0f50e02fa4109cdba2ae71c3.
+Requested-evaluation workflow added at commit 01fde54122cfeac327c4ee542f7fe2869fc78d40.
+
+The evaluation preserves the Experiment 052 scientific design unchanged: same 16 cells, strategies, data-generating mechanisms, W+>=167 exact one-sided signed-rank confirmation, 20 confirmation contrasts, E=100 action boundary, wrong-action/fallback costs, H1-H16 criteria, M1-M4 definitions, resource accounting, and all other frozen thresholds/criteria from issue #168. Fresh primary seeds are 53000..53999, audit seeds 53000..53004, fresh M1-M4 stress ranges 5351000..5354999, and bootstrap seed 53053. The only repair is the prospectively frozen implementation-level provenance stamp `experiment053_cell` written at shard generation and required by deterministic merge validation.
+
+No Experiment 053 outcomes were inspected before this request, and no scientific rule, threshold, split, sample count, score, stress generator, resource allocation, or acceptance boundary was tuned from Experiment 052 or Experiment 053 outcomes.
