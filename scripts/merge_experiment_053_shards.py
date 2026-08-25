@@ -14,12 +14,16 @@ def validate_audit(paths):
     if key not in expected:raise AssertionError(('unexpected_audit_group',key))
     t=int(r['t'])
     if t<1:raise AssertionError(('invalid_t',key,t))
-    g=groups.setdefault(key,{'n':0,'seen':set(),'max':0});g['n']+=1
+    g=groups.setdefault(key,{'n':0,'seen':set(),'min':None,'max':None});g['n']+=1
     if t in g['seen']:raise AssertionError(('duplicate_audit_t',key,t))
-    g['seen'].add(t);g['max']=max(g['max'],t)
+    g['seen'].add(t);g['min']=t if g['min'] is None else min(g['min'],t);g['max']=t if g['max'] is None else max(g['max'],t)
  if set(groups)!=expected:raise AssertionError(('audit_groups',len(groups),len(expected)))
+ intervals=set()
  for key,g in groups.items():
-  if g['n']!=g['max'] or len(g['seen'])!=g['max'] or min(g['seen'])!=1:raise AssertionError(('noncontiguous_audit_t',key,g['n'],g['max']))
+  expected_n=g['max']-g['min']+1
+  if g['n']!=expected_n or len(g['seen'])!=expected_n:raise AssertionError(('noncontiguous_audit_t',key,g['n'],g['min'],g['max']))
+  intervals.add((g['min'],g['max'],g['n']))
+ if len(intervals)!=1:raise AssertionError(('inconsistent_audit_intervals',sorted(intervals)))
  return count
 
 def main():
