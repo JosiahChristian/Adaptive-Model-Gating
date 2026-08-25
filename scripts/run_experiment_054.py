@@ -13,8 +13,7 @@ SEEDS=range(54000,55000);AUDIT=set(range(54000,54005));Z=1.6448536269514722
 STRESS={'M1':(5451000,'round-wise heteroskedastic symmetric scales 0.75,1.00,1.25,1.50,1.75'),'M2':(5452000,'direction-wise heteroskedastic symmetric forward:reverse 1:1.5'),'M3':(5453000,'AR(1) symmetric Gaussian rho=0.30'),'M4':(5454000,'90/10 asymmetric contaminated Gaussian shift +0.50')}
 EXP053_MEAN_COVERAGE=0.2573125;EXP050_MEAN_COVERAGE=0.376125
 
-def calibration_values():
- c=calibrations();return c['tau'],c['kappa'],c['kappa3'],c['lambda_a'],c['lambda_b'],c['lambda_c'],c['lambda_ab'],c['lambda_ac'],c['lambda_bc']
+def calibration_values():return calibrations()
 def write_csv(p,rows):
  p.parent.mkdir(parents=True,exist_ok=True);fields=[]
  for r in rows:
@@ -78,7 +77,7 @@ def report_from(rows):
   if disc<(.90 if float(c['noise_scale'])==1 else .80):H['H10']=False
   if M['coverage']<R['coverage']-.02:H['H11']=False
   losses={st:avg(qs[st],'operational_loss_401_600') for st in STRATEGIES}
-  if losses[M and FAMILY_MIXTURE_STRATEGY]>losses[TRIAD]+.20:H['H13']=False
+  if losses[FAMILY_MIXTURE_STRATEGY]>losses[TRIAD]+.20:H['H13']=False
   if sum(int(float(x['causal_violation_count']))+int(float(x['triad_veto_adapt_violations'])) for x in qs[FAMILY_MIXTURE_STRATEGY]):H['H14']=False
   cells[c['label']]={'family_mixture':M,'signed_rank':R,'discovery_hab':disc,'confirmation_crossing':cr,'signed_rank_crossing':rcr,'operational_loss':losses[FAMILY_MIXTURE_STRATEGY],'triad_loss':losses[TRIAD]}
  mean_cov=sum(cov)/len(cov);mean_cross=sum(cross)/len(cross);mean_cross53=sum(cross53)/len(cross53)
