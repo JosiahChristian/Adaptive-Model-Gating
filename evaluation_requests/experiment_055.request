@@ -1,0 +1,7 @@
+Experiment 055 full frozen evaluation requested after successful prospective core preflight (#191, run 32874829914) and complete evaluator-path prospective preflight (#192, run 32880635615).
+
+Operative prospective specification: issue #190.
+
+Preserve the frozen Experiment 055 design exactly as preregistered: same 16 cells; fresh primary seeds 55000..55999; audit seeds 55000..55004; bootstrap seed 55055; target allocation 2 discovery / 3 confirmation; baseline allocation 1 discovery / 3 confirmation; 30 disjoint confirmation contrasts with no observation reuse or discovery/confirmation overlap; exact one-sided signed-rank cutoff W+>=345; exact null tail 10555320/1073741824 at 345 and 11193679/1073741824 at 344; E>=100 deployment threshold; unchanged total observations/probe exposure; fresh M1-M4 stress ranges 5551000..5554999; frozen H1-H16 criteria; generation-time experiment055_cell audit provenance.
+
+Do not change seeds, thresholds, split/allocation, score/candidate logic, comparator definitions, stress generators, sample counts, costs, or acceptance criteria from issue #190. No Experiment 055 evaluation outcomes have been inspected before this request, and no outcome-driven tuning is permitted.
