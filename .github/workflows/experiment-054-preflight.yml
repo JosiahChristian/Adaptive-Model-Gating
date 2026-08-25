@@ -1,0 +1,60 @@
+name: Experiment 054 Prospective Preflight
+on:
+  push:
+    paths:
+      - 'src/experiment_054.py'
+      - 'scripts/run_experiment_054.py'
+      - 'scripts/run_experiment_054_shard.py'
+      - 'scripts/merge_experiment_054_shards.py'
+      - 'scripts/smoke_experiment_054.py'
+      - '.github/workflows/experiment-054-preflight.yml'
+      - 'evaluation_requests/experiment_054.request'
+permissions:
+  contents: read
+  issues: write
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 054 exhaustive-boundary smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_054.py > /tmp/smoke.log 2>&1
+      - name: Register prospective preflight outcome
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          {
+            echo 'Experiment 054 prospective preflight completed before any evaluation request.'
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo "- operative_spec_issue: 173"
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo '- exact-null requirement: exhaustive 2^20 fair-sign enumeration, 10,485 accepted patterns, frozen BF boundary and E construction'
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            echo '```'
+          } > /tmp/preflight.md
+          gh issue create --title "Experiment 054 prospective preflight $compile_status/$smoke_status $GITHUB_RUN_ID" --body-file /tmp/preflight.md
+      - name: Enforce prospective preflight success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
