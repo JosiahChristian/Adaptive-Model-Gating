@@ -1,0 +1,9 @@
+Experiment 054 full frozen evaluation requested after successful prospective implementation and evaluator-path preflights.
+
+Operative prospective specification: issue #173.
+Successful repaired evaluator-path preflight: issue #180, run 32844420197, head 84a541a90766bb1e11f4f30a6ecce7c932ab89d6.
+Successful exhaustive prospective preflight: issue #181, run 32844420208, head 84a541a90766bb1e11f4f30a6ecce7c932ab89d6.
+
+The evaluation preserves the prospectively frozen Experiment 054 design exactly: rank-conditioned 3-family x 4-theta equal-weight sign-pattern mixture ordering; exhaustive nonrandomized fair-sign null boundary with exactly 10,485 accepted patterns of 1,048,576; BF cutoff 8.473649256901517; p*=10485/1048576; accepted E=100.0072484501669 with deployment threshold E>=100; 20 disjoint primary-stream confirmation contrasts; unchanged Experiment-047 discovery/deployment architecture; same 16 cells; fresh primary seeds 54000..54999; audit seeds 54000..54004; fresh M1-M4 stress seeds 5451000..5454999; frozen H1-H16 criteria; clean generation-time experiment054_cell audit provenance.
+
+No Experiment 054 evaluation outcomes were generated or inspected before this request. No score family, theta, mixture weight, BF cutoff, seed range, sample count, split, comparator, stress generator, resource allocation, or E threshold was tuned from Experiment 054 outcomes.
