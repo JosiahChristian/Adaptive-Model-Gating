@@ -1,5 +1,5 @@
-Experiment 052 merge-only recovery requested after repeated cancellation of the deterministic merge job in requested-evaluation run 32744035215.
+Experiment 052 merge-only recovery retriggered after diagnosing the first recovery runner shutdown during deterministic merge.
 
-Preserve the frozen Experiment 052 science exactly as specified in issue #162 and requested at commit cbe85c50a912c13534dd3cef3e39d514b8e7b6c5. All 16 scientific shard jobs in run 32744035215 completed successfully. This recovery must download those completed shard artifacts, verify all 16 are present and nonempty, run only the existing deterministic merge/evidence generation, upload the evidence artifact, and register the evidence pointer.
+Preserve the frozen Experiment 052 science exactly as specified in issue #162 and requested at commit cbe85c50a912c13534dd3cef3e39d514b8e7b6c5. All 16 scientific shard jobs in run 32744035215 completed successfully. The merge implementation was repaired only for execution efficiency: audit validation now streams records and preserves the same group, duplicate-time, and contiguous-time checks without materializing the entire audit twice in memory.
 
-Do not rerun scientific shards, change seeds, thresholds, criteria, data generation, stress generators, sample allocation, or inspect/tune outcomes before recovery completes.
+This recovery must download the already completed shard artifacts, verify all 16 are present and nonempty, run only deterministic merge/evidence generation, upload the evidence artifact, and register the evidence pointer. Do not rerun scientific shards, change seeds, thresholds, criteria, data generation, stress generators, sample allocation, or inspect/tune outcomes before recovery completes.
