@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'src'));sys.
 from experiment_029 import TRIAD
 from experiment_046 import E_THRESHOLD
 from experiment_049 import PAIR_SIGN_STRATEGY
-from experiment_051 import SIGNED_RANK_STRATEGY
+from experiment_051 import SIGNED_RANK_STRATEGY,CELLS
 from experiment_054 import *
 from run_experiment_021 import calibrations
 
