@@ -1,0 +1,55 @@
+name: Experiment 055 Prospective Preflight
+on:
+  push:
+    paths:
+      - src/experiment_055.py
+      - scripts/smoke_experiment_055.py
+      - .github/workflows/experiment-055-preflight.yml
+permissions:
+  contents: read
+  issues: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 055 smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_055.py > /tmp/smoke.log 2>&1
+      - name: Register prospective validation outcome
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          {
+            echo 'Experiment 055 prospective preflight completed before any evaluation request.'
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo '- operative_spec_issue: 190'
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo '- frozen allocation: target 2/3, baseline 1/3, 30 disjoint confirmation contrasts'
+            echo '- exact null: W+>=345 tail 10555320/1073741824; W+>=344 tail 11193679/1073741824'
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            echo '```'
+          } > /tmp/validation.md
+          gh issue create --title "Experiment 055 prospective preflight $compile_status/$smoke_status $GITHUB_RUN_ID" --body-file /tmp/validation.md
+      - name: Enforce prospective validation success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
