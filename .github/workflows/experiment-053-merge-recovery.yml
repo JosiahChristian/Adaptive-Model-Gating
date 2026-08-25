@@ -1,0 +1,67 @@
+name: Experiment 053 Merge Recovery
+on:
+  push:
+    paths: [evaluation_requests/experiment_053_merge_recovery.request]
+permissions:
+  contents: read
+  actions: read
+  issues: write
+jobs:
+  recover-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Download completed frozen Experiment 053 shard artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf results/experiment_053_shards results/experiment_053
+          mkdir -p results/experiment_053_shards
+          gh run download 32814479368 --dir results/experiment_053_shards
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('results/experiment_053_shards')
+          cells=sorted(p.name for p in root.glob('cell-*') if p.is_dir())
+          expected=[f'cell-{i:02d}' for i in range(16)]
+          if cells != expected:
+              raise SystemExit(f'expected frozen shard artifacts {expected}, got {cells}')
+          for c in expected:
+              d=root/c
+              for name in ('summary.csv','audit.jsonl'):
+                  p=d/name
+                  if not p.exists() or p.stat().st_size == 0:
+                      raise SystemExit(f'missing/empty {p}')
+          print('Recovered all 16 completed Experiment 053 shard artifacts from run 32814479368')
+          PY
+      - name: Deterministically merge frozen Experiment 053 shards
+        run: python scripts/merge_experiment_053_shards.py --input-root results/experiment_053_shards --out results/experiment_053
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-053-evidence
+          path: results/experiment_053/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register completed recovered evidence pointer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_053/report.json').read_text())
+          keys=('evaluation_seeds','n_seeds_per_cell','cell_count','strategies','audit_seeds','bootstrap_seed','bootstrap_resamples','hypotheses','e_threshold','wrong_action_cost','fallback_cost','contrast_count','w_cutoff','p167_numerator','p167_denominator','p167','p166_numerator','p166_denominator','p166','accept_e','validity_assumptions','primary_zero_count','primary_absolute_tie_count','stress_panel','experiment050_reference_mean_coverage','mean_primary_coverage','mean_coverage_improvement_over_experiment049','mean_cross_improvement_over_experiment049','resource_accounting','full_five_round_latency','no_tuning','operative_spec_issue','clean_provenance_replication_of_experiment052','summary_row_count','audit_row_count')
+          compact={k:r.get(k) for k in keys}
+          body=('Recovered completed evidence for frozen Experiment 053 without rerunning scientific shards.\n\n'
+                f"- recovery_run_id: {os.environ['GITHUB_RUN_ID']}\n- recovery_head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- source_scientific_run_id: 32814479368\n- source_head_sha: 47eb5eb2c0ec22b8747e63ec7ec0933762afe1c9\n'
+                '- source_shards: all 16 completed successfully before recovery\n'
+                '- artifact_name: experiment-053-evidence\n- status: completed\n'
+                '- recovery scope: artifact download + corrected structural chronology validation + deterministic merge + evidence registration only; no scientific shard rerun and no frozen science change\n'
+                '- full_report: results/experiment_053/report.json inside artifact `experiment-053-evidence`\n\n'
+                '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/experiment053_recovery_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 053 recovered evidence $GITHUB_RUN_ID" --body-file /tmp/experiment053_recovery_issue.md
