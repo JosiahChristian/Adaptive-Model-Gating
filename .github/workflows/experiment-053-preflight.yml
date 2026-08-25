@@ -1,0 +1,26 @@
+name: Experiment 053 Prospective Preflight
+on:
+  push:
+    paths:
+      - 'scripts/run_experiment_053.py'
+      - 'scripts/run_experiment_053_shard.py'
+      - 'scripts/merge_experiment_053_shards.py'
+      - 'scripts/smoke_experiment_053.py'
+      - '.github/workflows/experiment-053-preflight.yml'
+      - 'evaluation_requests/experiment_053.request'
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile repository Python
+        run: python -m compileall -q src scripts
+      - name: Experiment 053 smoke
+        run: python scripts/smoke_experiment_053.py
+      - name: Static provenance contract
+        run: python -c "from pathlib import Path; s=Path('scripts/run_experiment_053_shard.py').read_text(); m=Path('scripts/merge_experiment_053_shards.py').read_text(); assert \"record['experiment053_cell']=c['label']\" in s; assert \"r.get('experiment053_cell','')\" in m; print('Experiment 053 provenance contract present')"
