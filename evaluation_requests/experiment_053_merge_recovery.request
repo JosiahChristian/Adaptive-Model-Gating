@@ -1,0 +1,5 @@
+Experiment 053 merge-only recovery requested after the first deterministic merge rejected a structurally valid audit chronology because the validator incorrectly required timestamps to start at t=1.
+
+Preserve the frozen Experiment 053 science exactly as specified in issue #168 and requested at commit 47eb5eb2c0ec22b8747e63ec7ec0933762afe1c9. All 16 scientific shard jobs in run 32814479368 completed successfully. The audit artifacts are prospectively provenance-stamped with experiment053_cell. This recovery may only download those completed shard artifacts, verify all 16 are present and nonempty, apply the corrected structural chronology validator, run the existing deterministic merge/evidence generation, upload the evidence artifact, and register the evidence pointer.
+
+Do not rerun scientific shards, change seeds, thresholds, criteria, data generation, stress generators, sample allocation, or inspect/tune outcomes before recovery completes.
