@@ -1,0 +1,52 @@
+name: Experiment 058 Chunked Execution Prospective Preflight
+on:
+  push:
+    paths: [evaluation_requests/experiment_058_execution_preflight.request]
+permissions: {contents: read, issues: write}
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install evaluator dependency
+        run: python -m pip install --disable-pip-version-check numpy
+      - name: Compile complete path
+        run: python -m compileall -q src scripts
+      - name: Synthetic evaluator smoke
+        run: python scripts/smoke_experiment_058_evaluator.py
+      - name: Validate chunk execution contract without reserved outcomes
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,'src');sys.path.insert(0,'scripts')
+          from experiment_058 import SOURCE_SEED_START,SOURCE_SEED_STOP
+          from merge_experiment_058_shards import CHUNK_SIZE,CHUNK_COUNT
+          assert (SOURCE_SEED_START,SOURCE_SEED_STOP)==(58000,63000)
+          assert CHUNK_SIZE==500 and CHUNK_COUNT==10
+          spans=[(58000+500*k,58000+500*(k+1)) for k in range(10)]
+          flat=[s for a,b in spans for s in range(a,b)]
+          assert len(flat)==5000 and len(set(flat))==5000 and flat[0]==58000 and flat[-1]==62999
+          q=Path('scripts/run_experiment_058_shard.py').read_text()
+          m=Path('scripts/merge_experiment_058_shards.py').read_text()
+          assert '--seed-start' in q and '--seed-stop' in q and 'invalid_seed_chunk' in q
+          for x in ('chunk_count','chunk_rows','cell_seed_coverage','set(seeds)!=set(SEEDS)'):assert x in m,x
+          print('Experiment 058 chunked execution contract passed without reserved outcome execution')
+          PY
+      - name: Register chunked execution prospective preflight
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          cat > /tmp/e58exec.md <<EOF
+          Experiment 058 chunked execution prospective preflight passed before any reserved primary outcome evaluation.
+
+          - run_id: $GITHUB_RUN_ID
+          - head_sha: $GITHUB_SHA
+          - operative_spec_issue: #208
+          - execution_only: 10 disjoint chunks x 500 source seeds per cell; deterministic merge requires exact 58000..62999 coverage and rejects missing/duplicate seeds
+          - replica_mapping: source + 10000000 unchanged
+          - scientific_change: none
+          - outcome_access: no reserved Experiment 058 source seed evaluated by this workflow
+          EOF
+          gh issue create --title "Experiment 058 chunked execution prospective preflight $GITHUB_RUN_ID" --body-file /tmp/e58exec.md
