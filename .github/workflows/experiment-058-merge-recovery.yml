@@ -45,11 +45,12 @@ jobs:
               raise SystemExit(f'expected 160 frozen chunk artifacts; missing={sorted(expected-got)} extra={sorted(got-expected)}')
           for name in sorted(expected):
               d=root/name
-              for fn in ('diagnostics.csv','audit.jsonl'):
-                  p=d/fn
-                  if not p.exists() or p.stat().st_size==0:
-                      raise SystemExit(f'missing/empty {p}')
-          print('Recovered all 160 completed Experiment 058 chunk artifacts from run 32950604619')
+              diag=d/'diagnostics.csv'; audit=d/'audit.jsonl'
+              if not diag.exists() or diag.stat().st_size==0:
+                  raise SystemExit(f'missing/empty {diag}')
+              if not audit.exists():
+                  raise SystemExit(f'missing {audit}')
+          print('Recovered all 160 completed Experiment 058 chunk artifacts from run 32950604619; empty audit files are valid for chunks outside the five frozen audit seeds')
           PY
       - name: Deterministically merge and evaluate frozen diagnostic evidence
         run: python scripts/merge_experiment_058_shards.py --input-root results/experiment_058_shards --out results/experiment_058
