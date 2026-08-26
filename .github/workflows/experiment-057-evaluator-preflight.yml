@@ -1,0 +1,43 @@
+name: Experiment 057 Evaluator Prospective Preflight
+on:
+  push:
+    paths: [evaluation_requests/experiment_057_evaluator_preflight.request]
+permissions: {contents: read, issues: write}
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile evaluator path
+        run: python -m compileall -q src scripts
+      - name: Evaluator synthetic smoke
+        run: python scripts/smoke_experiment_057_evaluator.py
+      - name: Static frozen diagnostic contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/run_experiment_057.py').read_text()
+          q=Path('scripts/run_experiment_057_shard.py').read_text()
+          m=Path('scripts/merge_experiment_057_shards.py').read_text()
+          required=('range(57000,58000)','5751000','5752000','5753000','5754000','OPERATIVE_SPEC_ISSUE=202','diagnostic_readout','round_block_randomization','reference_wplus_match')
+          for x in required:
+              assert x in p, x
+          assert 'experiment057_cell' in q
+          assert 'report_from(rows)' in m and 'audit integrity' in m
+          print('Experiment 057 evaluator static contract passed')
+          PY
+      - name: Register evaluator prospective preflight
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          cat > /tmp/e57.md <<EOF
+          Experiment 057 complete diagnostic-evaluator prospective preflight passed before any reserved primary outcome evaluation.
+
+          - run_id: $GITHUB_RUN_ID
+          - head_sha: $GITHUB_SHA
+          - operative_spec_issue: #202
+          - checks: compile, synthetic seed outside reserved range, all-edge 30-vector reconstruction, selected-edge identity/W+ parity with Experiment 056 reference implementation, 2^5 block enumeration, frozen 57000..57999 primary contract, fresh M1-M4 ranges, generation-time cell provenance, deterministic merge contract
+          - outcome_access: no reserved Experiment 057 primary seed evaluated by this workflow
+          EOF
+          gh issue create --title "Experiment 057 evaluator prospective preflight $GITHUB_RUN_ID" --body-file /tmp/e57.md
