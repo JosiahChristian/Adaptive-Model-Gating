@@ -1,0 +1,133 @@
+name: Experiment 058 Requested Diagnostic Evaluation
+on:
+  push:
+    paths: [evaluation_requests/experiment_058.request]
+permissions: {contents: read, issues: write}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install evaluator dependency
+        run: python -m pip install --disable-pip-version-check numpy
+      - name: Compile repository Python
+        run: python -m compileall -q src scripts
+      - name: Experiment 058 evaluator synthetic smoke
+        run: python scripts/smoke_experiment_058_evaluator.py
+      - name: Static requested-evaluation contract
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,'src');sys.path.insert(0,'scripts')
+          from experiment_058 import frozen_contract
+          from merge_experiment_058_shards import CHUNK_SIZE,CHUNK_COUNT
+          c=frozen_contract()
+          assert c['operative_spec_issue']==208
+          assert c['source_seed_range']==(58000,62999)
+          assert c['replica_seed_offset']==10_000_000
+          assert c['w_cutoff_reference_only']==345 and c['contrast_count']==30
+          assert c['randomization_seed']==58058 and c['randomization_resamples']==100_000
+          assert c['bootstrap_seed']==58059 and c['bootstrap_resamples']==10_000
+          assert c['d5_randomization_resamples']==2_000
+          assert CHUNK_SIZE==500 and CHUNK_COUNT==10
+          q=Path('scripts/run_experiment_058_shard.py').read_text();m=Path('scripts/merge_experiment_058_shards.py').read_text()
+          assert '--seed-start' in q and '--seed-stop' in q
+          assert 'cell_seed_coverage' in m and 'set(seeds)!=set(SEEDS)' in m
+          print('Experiment 058 requested-evaluation static contract passed')
+          PY
+      - name: Register requested validation outcome
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          cat > /tmp/e58validation.md <<EOF
+          Experiment 058 requested-evaluation validation passed before reserved outcome execution.
+
+          - run_id: $GITHUB_RUN_ID
+          - head_sha: $GITHUB_SHA
+          - operative_spec_issue: #208
+          - checks: compile, nonreserved synthetic evaluator smoke, exact frozen source/replica contract, D2/D4/D5 resampling contracts, and 10x500 chunk closure contract
+          EOF
+          gh issue create --title "Experiment 058 requested validation success $GITHUB_RUN_ID" --body-file /tmp/e58validation.md
+  prepare:
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      work: ${{ steps.matrix.outputs.work }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          sys.path.insert(0,'src')
+          from experiment_051 import CELLS
+          work=[]
+          for i,c in enumerate(CELLS):
+              for chunk in range(10):
+                  start=58000+500*chunk;stop=start+500
+                  work.append({'cell_index':i,'cell_dir':f'cell-{i:02d}','cell_label':c['label'],'chunk':chunk,'chunk_dir':f'chunk-{chunk:02d}','artifact':f'cell-{i:02d}-chunk-{chunk:02d}','seed_start':start,'seed_stop':stop})
+          print('work='+json.dumps(work,separators=(',',':')))
+          PY
+  diagnostic-shards:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.work) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Run frozen source/replica diagnostic chunk
+        run: python scripts/run_experiment_058_shard.py --cell-index ${{ matrix.cell_index }} --seed-start ${{ matrix.seed_start }} --seed-stop ${{ matrix.seed_stop }} --out results/experiment_058_shards/${{ matrix.artifact }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: results/experiment_058_shards/${{ matrix.artifact }}/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 2
+  evaluate:
+    needs: diagnostic-shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install evaluator dependency
+        run: python -m pip install --disable-pip-version-check numpy
+      - uses: actions/download-artifact@v4
+        with: {path: results/experiment_058_shards}
+      - name: Deterministically merge and evaluate frozen diagnostic evidence
+        run: python scripts/merge_experiment_058_shards.py --input-root results/experiment_058_shards --out results/experiment_058
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-058-evidence
+          path: results/experiment_058/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register completed evidence pointer
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_058/report.json').read_text())
+          compact={k:r.get(k) for k in ('operative_spec_issue','diagnostic_only','source_seed_range','replica_seed_offset','w_cutoff_reference_only','D1_integrity','D2_matched_wrong_selection','D3_wrong_selected_acceptance','D4_discovery_coupling','D6_candidate_strata','D7_stress_panel','diagnostic_row_count','audit_row_count','execution_chunk_size','execution_chunks_per_cell','no_tuning')}
+          body=('Automated completed evidence pointer for frozen Experiment 058 diagnostic.\n\n'
+                f"- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- artifact_name: experiment-058-evidence\n- status: completed\n'
+                '- execution: 16 cells x 5,000 fresh source seeds, each paired to independent confirmation replica source+10,000,000, partitioned execution-only as 10x500 chunks/cell\n'
+                '- selection: source discovery only; replica discovery excluded\n'
+                '- diagnostic_only: W+>=345 remains reference-only; no deployable rule fitted\n'
+                '- full_report: results/experiment_058/report.json inside artifact `experiment-058-evidence`\n\n'
+                '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/experiment058_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 058 evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment058_issue.md
