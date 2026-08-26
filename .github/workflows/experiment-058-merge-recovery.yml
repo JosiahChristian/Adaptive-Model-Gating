@@ -1,0 +1,82 @@
+name: Experiment 058 Merge Recovery
+on:
+  push:
+    paths: [evaluation_requests/experiment_058_merge_recovery.request]
+permissions:
+  contents: read
+  actions: read
+  issues: write
+jobs:
+  recover-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install evaluator dependency
+        run: python -m pip install --disable-pip-version-check numpy
+      - name: Compile repaired merge path
+        run: python -m compileall -q src scripts
+      - name: Validate JSON structural canonicalization repair
+        run: |
+          python - <<'PY'
+          import json,sys
+          sys.path.insert(0,'src');sys.path.insert(0,'scripts')
+          from experiment_058 import split_contract
+          from merge_experiment_058_shards import json_canonical
+          encoded=json.loads(json.dumps(split_contract(),sort_keys=True))
+          assert json_canonical(encoded)==json_canonical(split_contract())
+          print('Experiment 058 JSON structural canonicalization repair validated')
+          PY
+      - name: Download all completed frozen Experiment 058 chunks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf results/experiment_058_shards results/experiment_058
+          mkdir -p results/experiment_058_shards
+          gh run download 32950604619 --dir results/experiment_058_shards
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('results/experiment_058_shards')
+          expected={f'cell-{i:02d}-chunk-{j:02d}' for i in range(16) for j in range(10)}
+          got={p.name for p in root.glob('cell-*-chunk-*') if p.is_dir()}
+          if got != expected:
+              raise SystemExit(f'expected 160 frozen chunk artifacts; missing={sorted(expected-got)} extra={sorted(got-expected)}')
+          for name in sorted(expected):
+              d=root/name
+              for fn in ('diagnostics.csv','audit.jsonl'):
+                  p=d/fn
+                  if not p.exists() or p.stat().st_size==0:
+                      raise SystemExit(f'missing/empty {p}')
+          print('Recovered all 160 completed Experiment 058 chunk artifacts from run 32950604619')
+          PY
+      - name: Deterministically merge and evaluate frozen diagnostic evidence
+        run: python scripts/merge_experiment_058_shards.py --input-root results/experiment_058_shards --out results/experiment_058
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-058-evidence
+          path: results/experiment_058/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register recovered evidence pointer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_058/report.json').read_text())
+          compact={k:r.get(k) for k in ('operative_spec_issue','diagnostic_only','source_seed_range','replica_seed_offset','w_cutoff_reference_only','D1_integrity','D2_matched_wrong_selection','D3_wrong_selected_acceptance','D4_discovery_coupling','D6_candidate_strata','D7_stress_panel','diagnostic_row_count','audit_row_count','execution_chunk_size','execution_chunks_per_cell','no_tuning')}
+          body=('Recovered completed evidence for frozen Experiment 058 without rerunning diagnostic chunks.\n\n'
+                f"- recovery_run_id: {os.environ['GITHUB_RUN_ID']}\n- recovery_head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- source_scientific_run_id: 32950604619\n- source_head_sha: 0d344247a2863da0b2f8da5c3bfb20a479e00318\n'
+                '- source_chunks: all 160 completed successfully before recovery\n'
+                '- recovery scope: artifact download + JSON-safe structural validation + deterministic merge/evaluation + evidence registration only\n'
+                '- scientific changes: none; source seeds, replica mapping, diagnostics, reference boundary, resampling contracts, and interpretation branches unchanged\n'
+                '- artifact_name: experiment-058-evidence\n- status: completed\n'
+                '- full_report: results/experiment_058/report.json inside artifact `experiment-058-evidence`\n\n'
+                '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/experiment058_recovery_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 058 recovered evidence $GITHUB_RUN_ID" --body-file /tmp/experiment058_recovery_issue.md
