@@ -1,9 +1,12 @@
-Experiment 058 merge-only evidence recovery requested after execution-only JSON structural validation failure in final evaluate job of run 32950604619.
+Experiment 058 merge-only evidence recovery requested after execution-only final-merge failures in run 32950604619 and first recovery run 32955567900.
 
-All 160 frozen diagnostic chunk jobs completed successfully and uploaded their artifacts before the final merge. The failure occurred before evidence interpretation because the merge compared JSON-decoded split-contract metadata (lists/stringified mapping keys) directly against the in-memory Python split contract (tuples/integer mapping keys). The recovery is restricted to canonical JSON structural comparison, download of the already completed chunk artifacts, deterministic merge/evaluation, evidence upload, and evidence registration.
+All 160 frozen diagnostic chunk jobs completed successfully and uploaded their artifacts before the final merge. The original merge failure was a JSON structural comparison mismatch and was repaired by canonical JSON comparison. The first recovery then exposed a second execution-only validation defect: it incorrectly required every chunk audit.jsonl to be nonempty, although the frozen audit set contains only source seeds 58000..58004, so chunks outside those five seeds correctly contain an empty but present audit file.
+
+This recovery is restricted to accepting present empty audit files for chunks outside the frozen audit seeds, download of the already completed chunk artifacts, the already-repaired deterministic merge/evaluation, evidence upload, and evidence registration. The merge itself still enforces the complete frozen audit group set.
 
 Preserve operative scientific specification issue #208 exactly. Do not rerun diagnostic chunks, change source seeds 58000..62999, replica mapping source+10000000, W+>=345 reference-only status, diagnostics D1-D7, randomization/bootstrap seeds or resample counts, chunk coverage, thresholds, criteria, or interpretation branches. Do not tune from outcomes.
 
 Source scientific run: 32950604619
 Source head SHA: 0d344247a2863da0b2f8da5c3bfb20a479e00318
-Execution-only merge repair commit: f94aa8e9d5240912d9ec1054999423fd2b25011e
+JSON structural repair commit: f94aa8e9d5240912d9ec1054999423fd2b25011e
+Audit-validation repair commit: 85a43b7badef2a82d71c676eced616c98715c049
