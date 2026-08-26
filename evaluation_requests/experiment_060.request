@@ -1,0 +1,13 @@
+Experiment 060 requested evaluation
+operative_spec_issue=221
+evaluator_preflight_issue=223
+evaluator_preflight_run=33007501851
+primary_seeds=64000..68999
+seeds_per_cell=5000
+execution_partition=10x500_disjoint_contiguous_chunks_per_cell
+architecture=unchanged_30_contrast_signed_rank
+signed_rank_cutoff=345
+e_threshold=100
+primary_endpoint=H6-060_per_cell_accepted_precision_ge_0.99
+h5=non_primary_safety_crosscheck
+no_tuning=true
