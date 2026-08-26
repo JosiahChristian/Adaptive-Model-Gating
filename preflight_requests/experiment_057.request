@@ -1,0 +1,3 @@
+Experiment 057 prospective diagnostic preflight requested after issue #202 and before any Experiment 057 outcomes.
+
+Validate only the frozen diagnostic implementation contract, synthetic block-randomization smoke, split mapping, imports, and provenance/static requirements. Do not execute fresh Experiment 057 primary seeds 57000..57999, inspect outcomes, tune thresholds, or introduce a deployable rule.
