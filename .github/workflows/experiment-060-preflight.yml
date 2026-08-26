@@ -1,0 +1,49 @@
+name: Experiment 060 Prospective Preflight
+on:
+  push:
+    paths:
+      - src/experiment_060.py
+      - scripts/smoke_experiment_060.py
+      - .github/workflows/experiment-060-preflight.yml
+permissions:
+  contents: read
+  issues: write
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        run: python -m compileall -q src scripts
+      - name: Experiment 060 prospective core smoke
+        run: python scripts/smoke_experiment_060.py
+      - name: Static prospective contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          t=Path('src/experiment_060.py').read_text()
+          s=Path('scripts/smoke_experiment_060.py').read_text()
+          assert 'OPERATIVE_SPEC_ISSUE = 221' in t
+          assert "experiment060_cell" in t
+          assert 'W_CUTOFF == 345' in s
+          assert 'CONTRAST_COUNT == 30' in s
+          print('Experiment 060 static prospective contract: PASS')
+          PY
+      - name: Register successful prospective preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > /tmp/issue.md <<EOF
+          Experiment 060 prospective core preflight passed before any reserved outcome execution.
+
+          - run_id: $GITHUB_RUN_ID
+          - head_sha: $GITHUB_SHA
+          - operative_spec_issue: #221
+          - reserved_primary_seeds: 64000..68999 (not executed by this preflight)
+          - architecture: unchanged Experiment 055/056/059 30-contrast W+>=345 rule
+          - validation: compile + structural split/exact-boundary smoke + static provenance contract
+          - status: success
+          EOF
+          gh issue create --title "Experiment 060 prospective preflight success $GITHUB_RUN_ID" --body-file /tmp/issue.md
