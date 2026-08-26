@@ -1,0 +1,5 @@
+Experiment 060 complete evaluator-path prospective preflight requested after successful core preflight issue #222 and before any reserved 64000..68999 outcome execution.
+
+Validate the frozen issue #221 targeted H6 replication evaluator, exact W+>=345 / W+>=344 null contracts, generation-time experiment060_cell provenance, streaming deterministic evidence merge, and the prospectively fixed execution-only partition of each cell's 5,000 reserved seeds into 10 disjoint contiguous 500-seed chunks. Chunking is permitted by #221 and may not change scientific ordering, data, aggregation, thresholds, criteria, or outcomes.
+
+The smoke test must use only nonreserved seed 63999. No Experiment 060 reserved outcome may be inspected during this preflight.
