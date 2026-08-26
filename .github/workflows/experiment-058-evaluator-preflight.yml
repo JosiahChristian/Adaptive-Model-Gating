@@ -1,0 +1,47 @@
+name: Experiment 058 Evaluator Prospective Preflight
+on:
+  push:
+    paths: [evaluation_requests/experiment_058_evaluator_preflight.request]
+permissions: {contents: read, issues: write}
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install evaluator dependency
+        run: python -m pip install --disable-pip-version-check numpy
+      - name: Compile evaluator path
+        run: python -m compileall -q src scripts
+      - name: Evaluator synthetic smoke
+        run: python scripts/smoke_experiment_058_evaluator.py
+      - name: Static frozen diagnostic contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/run_experiment_058.py').read_text()
+          q=Path('scripts/run_experiment_058_shard.py').read_text()
+          m=Path('scripts/merge_experiment_058_shards.py').read_text()
+          s=Path('src/experiment_058.py').read_text()
+          required=('SOURCE_SEED_START = 58000','SOURCE_SEED_STOP = 63000','REPLICA_SEED_OFFSET = 10_000_000','RANDOMIZATION_RESAMPLES = 100_000','BOOTSTRAP_RESAMPLES = 10_000','D5_RANDOMIZATION_RESAMPLES = 2_000')
+          for x in required: assert x in s, x
+          for x in ('5851000','5852000','5853000','5854000','independent_confirmation_readout','replica_discovery_used_for_selection','_paired_signflip_pvalue','_bootstrap_coupling','_d5_cell'):
+              assert x in p, x
+          assert 'audit_record(seed,c,d)' in q
+          assert 'report_from(rows)' in m and 'split_contract' in m and 'replica_discovery_used_for_selection' in m
+          print('Experiment 058 evaluator static contract passed')
+          PY
+      - name: Register evaluator prospective preflight
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          cat > /tmp/e58.md <<EOF
+          Experiment 058 complete diagnostic-evaluator prospective preflight passed before any reserved primary outcome evaluation.
+
+          - run_id: $GITHUB_RUN_ID
+          - head_sha: $GITHUB_SHA
+          - operative_spec_issue: #208
+          - checks: compile, synthetic seed outside reserved range, exact source/reference parity, deterministic source+10000000 replica mapping, replica-discovery exclusion, all-edge 30-vector audit groups, 58000..62999 reserved source contract, 100000 D2 sign flips at seed 58058, 10000 D4 paired bootstrap resamples at seed 58059, prospectively completed 2000-resample D5 paired-swap contract with deterministic seed derivation, fresh M1-M4 ranges, deterministic merge provenance
+          - outcome_access: no reserved Experiment 058 primary source seed evaluated by this workflow
+          EOF
+          gh issue create --title "Experiment 058 evaluator prospective preflight $GITHUB_RUN_ID" --body-file /tmp/e58.md
