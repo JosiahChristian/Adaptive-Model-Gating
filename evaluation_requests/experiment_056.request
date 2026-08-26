@@ -1,0 +1,9 @@
+Experiment 056 full independent replication evaluation requested after successful prospective core preflight (#197, run 32908032239) and successful complete evaluator-path prospective preflight (#198, run 32912596625).
+
+Operative prospective specification: issue #196.
+
+Preserve the exact Experiment 055 architecture without modification: same 16 cells; target allocation 2 discovery / 3 confirmation; baseline allocation 1 discovery / 3 confirmation; 30 disjoint confirmation contrasts with no observation reuse; exact one-sided signed-rank W+>=345; exact tails 10,555,320/1,073,741,824 at 345 and 11,193,679/1,073,741,824 at 344; E>=100 deployment; unchanged costs, discovery/candidate logic, comparators, fallback/context behavior, H1-H16 criteria, and no-tuning constraints.
+
+Use only the prospectively frozen fresh Experiment 056 ranges: primary seeds 56000..56999, audit 56000..56004, bootstrap 56056, and fresh M1-M4 stress ranges 5651000..5654999. Preserve generation-time experiment056_cell audit provenance and deterministic structural merge validation.
+
+No Experiment 056 outcomes were inspected before this request. Do not change any rule, threshold, split, sample count, score, stress generator, resource allocation, seed range, or acceptance boundary from issue #196 based on outcomes.
