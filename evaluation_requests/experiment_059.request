@@ -1,0 +1,8 @@
+Experiment 059 full confirmatory replication evaluation requested after successful prospective core preflight issue #216 and successful complete evaluator-path prospective preflight issue #217.
+
+Operative prospective specification: issue #215.
+Evaluator preflight: run 32971114549, head f9fb148a034986ff7cb295fa54199c9ee199778c.
+
+Preserve the exact Experiment 055/056 30-contrast architecture without modification: 16 cells; fresh primary seeds 63000..63999; audit seeds 63000..63004; fresh M1-M4 ranges 5951000..5954999; baseline allocation 1 discovery / 3 confirmation per round; each target 2 discovery / 3 confirmation; exactly 30 disjoint confirmation contrasts; W+>=345 with exact frozen null tail 10555320/1073741824 and W+>=344 outside 1% at 11193679/1073741824; E threshold 100; unchanged costs, comparators, deployment/fallback logic, H1-H16 criteria, bootstrap/reporting contracts, and generation-time experiment059_cell audit provenance.
+
+This is the prospectively required fresh confirmatory replication under branch C of Experiment 058 specification #208. No Experiment 059 outcome was inspected before this request, and no seed, threshold, split, sample allocation, stress generator, criterion, comparator, reporting rule, or interpretation branch has been changed from the prospective specification.
