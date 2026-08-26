@@ -1,0 +1,5 @@
+Experiment 057 complete diagnostic-evaluator prospective preflight requested after successful core preflight issue #203 and before any reserved primary outcome evaluation.
+
+Preserve operative prospective specification #202 exactly. Validate only implementation integrity using compilation and synthetic/preflight-only seeds outside 57000..57999. Confirm the evaluator reserves primary seeds 57000..57999, audit seeds 57000..57004, fresh M1-M4 ranges 5751000..5754999, all-edge 30-element diagnostic readouts, selected-edge parity with the unchanged Experiment 056 W+ reference, 2^5 round-block sign-flip diagnostics, generation-time provenance, and deterministic merge structure.
+
+Do not inspect any reserved Experiment 057 primary outcome and do not change any scientific split, threshold, criterion, diagnostic branch, or interpretation rule.
