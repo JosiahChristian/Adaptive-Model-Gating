@@ -1,0 +1,3 @@
+Experiment 058 prospective preflight requested after interpretation issue #207 and prospective specification #208.
+
+Validate only the frozen diagnostic implementation and static contract. Smoke must use a nonreserved source seed and must not execute or inspect reserved Experiment 058 source seeds 58000..62999. The diagnostic remains non-deploying: W+>=345 is reference-only, replica seed mapping is source+10000000, randomization seed/count are 58058/100000, bootstrap seed/count are 58059/10000, and no Experiment 057 outcome may be used to alter these frozen quantities after this request.
