@@ -14,6 +14,9 @@ RANDOMIZATION_SEED = 58058
 BOOTSTRAP_SEED = 58059
 RANDOMIZATION_RESAMPLES = 100_000
 BOOTSTRAP_RESAMPLES = 10_000
+D5_RANDOMIZATION_RESAMPLES = 2_000
+D5_FIXED_EDGES = ('H_ac','H_bc')
+D5_METRICS = ('acceptance','wplus','sign_sum','confirmation_mean')
 
 
 def replica_seed(source_seed: int) -> int:
@@ -22,6 +25,10 @@ def replica_seed(source_seed: int) -> int:
     if SOURCE_SEED_START <= rep < SOURCE_SEED_STOP:
         raise AssertionError((source_seed, rep, "replica/source collision"))
     return rep
+
+
+def d5_randomization_seed(cell_index: int, edge_index: int, metric_index: int) -> int:
+    return RANDOMIZATION_SEED + 1000*int(cell_index) + 10*int(edge_index) + int(metric_index)
 
 
 def _edge_stats(values):
@@ -71,6 +78,9 @@ def frozen_contract():
         "randomization_resamples": RANDOMIZATION_RESAMPLES,
         "bootstrap_seed": BOOTSTRAP_SEED,
         "bootstrap_resamples": BOOTSTRAP_RESAMPLES,
+        "d5_randomization_resamples": D5_RANDOMIZATION_RESAMPLES,
+        "d5_fixed_edges": D5_FIXED_EDGES,
+        "d5_metrics": D5_METRICS,
         "split_contract": split_contract(),
         "diagnostic_only": True,
     }
