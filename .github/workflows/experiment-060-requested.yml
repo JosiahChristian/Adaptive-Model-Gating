@@ -1,0 +1,107 @@
+name: Experiment 060 Requested Evaluation
+on:
+  push:
+    paths: [evaluation_requests/experiment_060.request]
+permissions: {contents: read, issues: write}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 060 evaluator smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_060_evaluator.py > /tmp/smoke.log 2>&1
+      - name: Static frozen execution/provenance contract
+        id: provenance
+        if: steps.compile.outcome == 'success' && steps.smoke.outcome == 'success'
+        continue-on-error: true
+        run: python -c "from pathlib import Path; s=Path('scripts/run_experiment_060_shard.py').read_text(); m=Path('scripts/merge_experiment_060_shards.py').read_text(); assert \"record['experiment060_cell']=c['label']\" in s; assert 'CHUNK_SIZE=500;CHUNK_COUNT=10' in m; assert \"range(CHUNK_COUNT)\" in m; assert \"expected={(seed,st) for seed in SEEDS for st in STRATEGIES}\" in m"
+      - name: Enforce requested validation success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
+          test '${{ steps.provenance.outcome }}' = 'success'
+  prepare:
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      chunks: ${{ steps.matrix.outputs.chunks }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          sys.path.insert(0,'scripts')
+          from run_experiment_060 import CELLS
+          chunks=[]
+          for i,c in enumerate(CELLS):
+              for k in range(10):
+                  start=64000+k*500; stop=start+500
+                  chunks.append({'index':i,'chunk':k,'dir':f'cell-{i:02d}-chunk-{k:02d}','label':c['label'],'start':start,'stop':stop})
+          print('chunks='+json.dumps(chunks,separators=(',',':')))
+          PY
+  evaluate-chunks:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.chunks) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python scripts/run_experiment_060_shard.py --cell-index ${{ matrix.index }} --seed-start ${{ matrix.start }} --seed-stop ${{ matrix.stop }} --out results/experiment_060_shards/${{ matrix.dir }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.dir }}
+          path: results/experiment_060_shards/${{ matrix.dir }}/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 2
+  evaluate:
+    needs: evaluate-chunks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with: {path: results/experiment_060_shards}
+      - name: Deterministically merge and validate evidence
+        run: python scripts/merge_experiment_060_shards.py --input-root results/experiment_060_shards --out results/experiment_060
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-060-evidence
+          path: results/experiment_060/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register completed evidence pointer
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_060/report.json').read_text())
+          body=('Automated completed evidence pointer for Experiment 060.\n\n'
+                f"- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- operative_spec_issue: #221\n- artifact_name: experiment-060-evidence\n- status: completed\n'
+                '- execution: frozen targeted H6 precision-stability replication, 5,000 fresh seeds/cell, prospectively partitioned into 10x500 execution-only chunks\n'
+                '- architecture: unchanged 30-contrast W+>=345 rule; baseline 1/3 and target 2/3 allocation; E=100\n'
+                '- audit provenance: experiment060_cell stamped at generation and structurally validated during deterministic merge\n\n'
+                '```json\n'+json.dumps(r,indent=2,sort_keys=True)+'\n```\n')
+          Path('/tmp/experiment060_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 060 evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment060_issue.md
