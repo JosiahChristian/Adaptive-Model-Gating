@@ -1,0 +1,5 @@
+Experiment 058 complete diagnostic-evaluator prospective preflight requested before any reserved source outcome is executed or inspected.
+
+Operative prospective specification: issue #208, including the pre-outcome evaluator implementation completion note fixing D5 at 2,000 paired-swap Monte Carlo resamples per (cell, fixed edge, metric) with deterministic seed derivation from 58058.
+
+Validate the complete evaluator path only on synthetic/nonreserved smoke data. Preserve source seeds 58000..62999, replica mapping source+10000000, source-only discovery selection, 30 confirmation contrasts, W+>=345 as reference-only, D2 100,000 sign flips at seed 58058, D4 10,000 paired-seed bootstrap resamples at seed 58059, D5 H_ac/H_bc fixed-edge paired tests with Holm correction, fresh M1-M4 ranges 5851000..5854999, and generation-time provenance. Do not execute or inspect reserved Experiment 058 primary outcomes.
