@@ -1,0 +1,40 @@
+name: Experiment 057 Prospective Preflight
+on:
+  push:
+    paths: [preflight_requests/experiment_057.request]
+permissions: {contents: read, issues: write}
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        run: python -m compileall -q src scripts
+      - name: Experiment 057 diagnostic smoke
+        run: python scripts/smoke_experiment_057.py
+      - name: Static diagnostic contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('src/experiment_057.py').read_text()
+          required=('OPERATIVE_SPEC_ISSUE = 202','EDGE_ORDER = ("H_ab", "H_ac", "H_bc")','repeat=ROUND_COUNT','W_CUTOFF','split_indices_055')
+          missing=[x for x in required if x not in s]
+          if missing: raise SystemExit(f'missing frozen diagnostic contract: {missing}')
+          PY
+      - name: Register prospective preflight success
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          cat > /tmp/preflight.md <<EOF
+          Experiment 057 prospective diagnostic preflight completed successfully before any Experiment 057 outcome evaluation.
+
+          - run_id: $GITHUB_RUN_ID
+          - head_sha: $GITHUB_SHA
+          - operative_spec_issue: #202
+          - compile: success
+          - synthetic diagnostic smoke: success
+          - frozen diagnostic contract: success
+          - outcome inspection: none
+          EOF
+          gh issue create --title "Experiment 057 prospective preflight success $GITHUB_RUN_ID" --body-file /tmp/preflight.md
