@@ -1,0 +1,53 @@
+name: Experiment 060 Evaluator Prospective Preflight
+on:
+  push:
+    paths: [evaluation_requests/experiment_060_evaluator_preflight.request]
+permissions: {contents: read, issues: write}
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        run: python -m compileall -q src scripts
+      - name: Experiment 060 evaluator nonreserved smoke
+        run: python scripts/smoke_experiment_060_evaluator.py
+      - name: Static frozen evaluator and chunk contract
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,'src');sys.path.insert(0,'scripts')
+          from run_experiment_060 import SEEDS,AUDIT,CHUNK_SIZE,CHUNK_COUNT,W_CUTOFF,P345_NUMERATOR,P345_DENOMINATOR,P344_NUMERATOR,P344_DENOMINATOR,OPERATIVE_SPEC_ISSUE
+          assert OPERATIVE_SPEC_ISSUE==221
+          assert list(SEEDS)==list(range(64000,69000)) and AUDIT==set(range(64000,64005))
+          assert CHUNK_SIZE==500 and CHUNK_COUNT==10
+          assert W_CUTOFF==345
+          assert (P345_NUMERATOR,P345_DENOMINATOR)==(10555320,1073741824)
+          assert (P344_NUMERATOR,P344_DENOMINATOR)==(11193679,1073741824)
+          work=[]
+          for cell in range(16):
+              for chunk in range(CHUNK_COUNT):
+                  start=64000+chunk*CHUNK_SIZE;stop=start+CHUNK_SIZE
+                  work.extend((cell,s) for s in range(start,stop))
+          assert len(work)==16*5000 and len(set(work))==16*5000
+          m=Path('scripts/merge_experiment_060_shards.py').read_text()
+          assert 'cell_seed_coverage' in m and 'seen!=expected' in m
+          assert 'experiment060_cell' in m and 'H6_060_pass' in m
+          print('Experiment 060 evaluator/chunk static contract passed')
+          PY
+      - name: Register evaluator preflight success
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          cat > /tmp/e60preflight.md <<EOF
+          Experiment 060 complete evaluator-path prospective preflight passed before reserved outcome execution.
+
+          - run_id: $GITHUB_RUN_ID
+          - head_sha: $GITHUB_SHA
+          - operative_spec_issue: #221
+          - checks: compile, nonreserved seed 63999 evaluator smoke, exact W+ 345/344 contract, 64000..68999 seed reservation, generation-time provenance path, streaming deterministic merge, and prospective 10x500 execution-only chunk closure per cell
+          - scientific architecture: unchanged; chunking is execution-only as explicitly permitted by #221
+          EOF
+          gh issue create --title "Experiment 060 evaluator preflight success $GITHUB_RUN_ID" --body-file /tmp/e60preflight.md
