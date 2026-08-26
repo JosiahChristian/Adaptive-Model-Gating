@@ -1,0 +1,3 @@
+Experiment 058 chunked execution prospective preflight requested after evaluator validation and before any reserved primary outcome execution.
+
+Operative specification remains issue #208. Validate only the execution partition and deterministic closure contract: 10 disjoint chunks of 500 source seeds per cell, exact per-cell source coverage 58000..62999, replica seed source+10000000, no missing/duplicate source seeds, and unchanged diagnostics. This is execution-only and must not run any reserved Experiment 058 source outcome.
