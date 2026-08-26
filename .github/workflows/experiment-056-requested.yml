@@ -1,0 +1,132 @@
+name: Experiment 056 Requested Evaluation
+on:
+  push:
+    paths: [evaluation_requests/experiment_056.request]
+permissions: {contents: read, issues: write}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 056 smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_056_evaluator.py > /tmp/smoke.log 2>&1
+      - name: Static provenance contract
+        id: provenance
+        if: steps.compile.outcome == 'success' && steps.smoke.outcome == 'success'
+        continue-on-error: true
+        run: python -c "from pathlib import Path; s=Path('scripts/run_experiment_056_shard.py').read_text(); m=Path('scripts/merge_experiment_056_shards.py').read_text(); assert \"record['experiment056_cell']=c['label']\" in s; assert \"r.get('experiment056_cell','')\" in m"
+      - name: Register requested validation outcome
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          provenance_status='${{ steps.provenance.outcome }}'
+          {
+            echo "Experiment 056 requested-evaluation validation completed."
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo "- provenance_status: $provenance_status"
+            echo "- operative_spec_issue: 196"
+            echo "- frozen_exact_null_tail_345: 10555320/1073741824"
+            echo "- frozen_exact_null_tail_344: 11193679/1073741824"
+            echo "- frozen_primary_seeds: 56000..56999"
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            echo '```'
+          } > /tmp/validation.md
+          gh issue create --title "Experiment 056 requested validation $compile_status/$smoke_status/$provenance_status $GITHUB_RUN_ID" --body-file /tmp/validation.md
+      - name: Enforce requested validation success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
+          test '${{ steps.provenance.outcome }}' = 'success'
+  prepare:
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      cells: ${{ steps.matrix.outputs.cells }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          sys.path.insert(0,'scripts')
+          from run_experiment_056 import CELLS
+          print('cells='+json.dumps([{'index':i,'dir':f'cell-{i:02d}','label':c['label']} for i,c in enumerate(CELLS)],separators=(',',':')))
+          PY
+  evaluate-shards:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.cells) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python scripts/run_experiment_056_shard.py --cell-index ${{ matrix.index }} --out results/experiment_056_shards/${{ matrix.dir }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.dir }}
+          path: results/experiment_056_shards/${{ matrix.dir }}/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 2
+  evaluate:
+    needs: evaluate-shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with: {path: results/experiment_056_shards}
+      - name: Deterministically merge and validate evidence
+        run: python scripts/merge_experiment_056_shards.py --input-root results/experiment_056_shards --out results/experiment_056
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-056-evidence
+          path: results/experiment_056/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register completed evidence pointer
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_056/report.json').read_text())
+          keys=('evaluation_seeds','n_seeds_per_cell','cell_count','strategies','audit_seeds','bootstrap_seed','bootstrap_resamples','operative_spec_issue','hypotheses','all_hypotheses_pass','mean_primary_coverage','experiment053_reference_mean_coverage','coverage_improvement_over_experiment053','experiment050_reference_mean_coverage','aggregate_confirmation_crossing','experiment053_aggregate_confirmation_crossing','mean_discovery_change_vs_experiment053','mean_confirmation_change_vs_experiment053','primary_zero_count','primary_absolute_tie_count','stress_panel','exact_boundary','e_threshold','accept_e','resource_accounting','full_five_round_latency','no_tuning','summary_row_count','audit_row_count','audit_time_interval','replication_of_experiment055')
+          compact={k:r.get(k) for k in keys}
+          body=('Automated completed evidence pointer for Experiment 056.\n\n'
+                f"- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- artifact_name: experiment-056-evidence\n- status: completed\n'
+                '- execution: exact frozen replication of Experiment 055 across 16 cells, 1,000 fresh seeds/cell, plus four fresh frozen 1,000-seed misspecification stresses\n'
+                '- allocation: target 2 discovery / 3 confirmation; baseline 1 discovery / 3 confirmation; 30 disjoint confirmation contrasts\n'
+                '- audit provenance: experiment056_cell stamped at shard generation and structurally validated during merge\n'
+                '- exact null boundary: W+>=345 tail 10,555,320/1,073,741,824; W+>=344 tail 11,193,679/1,073,741,824\n'
+                '- full_report: results/experiment_056/report.json inside artifact `experiment-056-evidence`\n\n'
+                '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/experiment056_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 056 evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment056_issue.md
