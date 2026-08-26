@@ -1,0 +1,74 @@
+name: Experiment 058 Prospective Preflight
+on:
+  push:
+    paths: [evaluation_requests/experiment_058_preflight.request]
+permissions: {contents: read, issues: write}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 058 smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_058.py > /tmp/smoke.log 2>&1
+      - name: Static frozen diagnostic contract
+        id: contract
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python - <<'PY' > /tmp/contract.log 2>&1
+          import sys
+          sys.path.insert(0,'src')
+          from experiment_058 import frozen_contract,replica_seed
+          c=frozen_contract()
+          assert c['operative_spec_issue']==208
+          assert c['source_seed_range']==(58000,62999)
+          assert c['replica_seed_offset']==10000000
+          assert c['w_cutoff_reference_only']==345
+          assert c['contrast_count']==30
+          assert c['randomization_seed']==58058 and c['randomization_resamples']==100000
+          assert c['bootstrap_seed']==58059 and c['bootstrap_resamples']==10000
+          assert replica_seed(58000)==10058000 and replica_seed(62999)==10062999
+          print(c)
+          PY
+      - name: Register prospective preflight outcome
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          contract_status='${{ steps.contract.outcome }}'
+          {
+            echo 'Experiment 058 prospective preflight completed before any reserved outcome execution.'
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo "- operative_spec_issue: 208"
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo "- contract_status: $contract_status"
+            echo '- reserved_source_seeds: 58000..62999 (not executed by smoke)'
+            echo '- replica_mapping: source+10000000'
+            echo '- deployment: unchanged; diagnostic only'
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            test -f /tmp/contract.log && cat /tmp/contract.log || true
+            echo '```'
+          } > /tmp/validation.md
+          gh issue create --title "Experiment 058 prospective preflight $compile_status/$smoke_status/$contract_status $GITHUB_RUN_ID" --body-file /tmp/validation.md
+      - name: Enforce prospective preflight success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
+          test '${{ steps.contract.outcome }}' = 'success'
