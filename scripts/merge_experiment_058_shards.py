@@ -8,10 +8,15 @@ from run_experiment_058 import CELLS,SEEDS,AUDIT,report_from,write_csv
 CHUNK_SIZE=500
 CHUNK_COUNT=(SOURCE_SEED_STOP-SOURCE_SEED_START)//CHUNK_SIZE
 
+def json_canonical(value):
+    """Canonicalize frozen structural metadata exactly as JSON artifacts encode it."""
+    return json.loads(json.dumps(value,sort_keys=True))
+
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--input-root',required=True);ap.add_argument('--out',required=True);a=ap.parse_args()
     root=Path(a.input_root);out=Path(a.out);out.mkdir(parents=True,exist_ok=True);rows=[];audit=[]
     expected_audit={(c['label'],int(seed)) for c in CELLS for seed in AUDIT}
+    expected_split_contract=json_canonical(split_contract())
     for i,c in enumerate(CELLS):
         dirs=sorted(root.glob(f'cell-{i:02d}-chunk-*'))
         if len(dirs)!=CHUNK_COUNT:raise AssertionError(('chunk_count',i,len(dirs),CHUNK_COUNT))
@@ -32,7 +37,7 @@ def main():
     if keys!=expected_audit or len(audit)!=len(expected_audit):raise AssertionError(('audit_groups',len(keys),len(expected_audit),len(audit)))
     for x in audit:
         if int(x['spec_issue'])!=OPERATIVE_SPEC_ISSUE or int(x['replica_seed'])!=int(x['source_seed'])+REPLICA_SEED_OFFSET or int(x['replica_discovery_used_for_selection'])!=0:raise AssertionError(('audit_integrity',x.get('experiment058_cell'),x.get('source_seed')))
-        if x['split_contract']!=split_contract():raise AssertionError(('split_contract',x['experiment058_cell'],x['source_seed']))
+        if json_canonical(x['split_contract'])!=expected_split_contract:raise AssertionError(('split_contract',x['experiment058_cell'],x['source_seed']))
         if set(x['groups'])!=set(EDGE_ORDER):raise AssertionError(('edge_groups',x['experiment058_cell'],x['source_seed']))
         for h in EDGE_ORDER:
             g=x['groups'][h]
