@@ -1,0 +1,5 @@
+Experiment 057 diagnostic evaluation requested after successful prospective core preflight (#203) and complete evaluator-path prospective preflight (#204), under operative specification #202.
+
+Preserve the diagnostic design exactly as preregistered: fresh primary seeds 57000..57999; audit seeds 57000..57004; fresh M1-M4 ranges 5751000..5754999; unchanged Experiment 056 data generation, discovery, allocation, W+>=345 reference statistic, costs, latency, and provenance; all-edge 30-element confirmation vectors; fixed-edge and cyclic controls; discovery-confirmation coupling summaries; 30x30 dependence matrices; five-round block sign-flip sensitivity; and diagnostic-only interpretation branches A-D.
+
+This run must not introduce or fit a new deployable rule, retune W+, change E=100, alter splits/sample allocation, relax any prior criterion, or inspect/tune against partial outcomes. Complete all 16 frozen diagnostic cells, preserve generation-time experiment057_cell provenance, deterministically merge the evidence, register the artifact, and only then interpret the preregistered diagnostic branches.
