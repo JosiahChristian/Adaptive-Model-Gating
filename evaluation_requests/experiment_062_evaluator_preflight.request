@@ -1,0 +1,9 @@
+Experiment 062 complete evaluator-path prospective preflight requested after successful core preflight issue #236 and before any reserved evaluation outcome request.
+
+Operative prospective specification: issue #235.
+
+Validate the complete evaluator, shard, merge, evidence, and provenance path for the exact independent replication of Experiment 061 using reserved primary seeds 70000..70999, but do not execute those reserved outcomes in this preflight. The evaluator smoke must use only the nonreserved implementation seed 620621.
+
+Frozen contracts to verify include: unchanged 30 disjoint confirmation contrasts, W+>=345 and exact 345/344 tails, E=100, confirmation-topology agreement as veto-only with no candidate reselection or extra observations, unchanged Experiment 055 comparator on identical streams, H5-062/H6-062 endpoints, descriptive-only utility reporting, generation-time experiment062_cell provenance, exact seed/cell completeness, and deterministic audit chronology validation.
+
+No reserved outcomes may be inspected, no threshold/allocation/tie order/endpoint may change, and no tuning is permitted.
