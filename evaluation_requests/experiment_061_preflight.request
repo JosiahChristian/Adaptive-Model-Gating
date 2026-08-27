@@ -1,0 +1,7 @@
+Experiment 061 prospective implementation preflight requested after specification issue #226 and before any reserved Experiment 061 outcome.
+
+Validate only compile, the nonreserved implementation smoke, exact W+ 345/344 constants inherited unchanged, confirmation-topology agreement veto semantics, no-extra-observation contract, no candidate reselection, and generation-time provenance implementation.
+
+Reserved primary seeds 69000..69999 and audit seeds 69000..69004 must not be executed or inspected by this preflight. The smoke seed 610610 is implementation-only and outside the reserved range.
+
+No threshold, tie order, score transform, allocation, sample size, cell set, acceptance rule, or interpretation branch may be changed from issue #226 after outcomes are observed.
