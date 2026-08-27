@@ -1,0 +1,78 @@
+name: Experiment 062 Evaluator Prospective Preflight
+on:
+  push:
+    paths: [evaluation_requests/experiment_062_evaluator_preflight.request]
+permissions: {contents: read, issues: write}
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 062 evaluator smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_062_evaluator.py > /tmp/smoke.log 2>&1
+      - name: Static evaluator and provenance contract
+        id: contract
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          r=Path('scripts/run_experiment_062.py').read_text()
+          s=Path('scripts/run_experiment_062_shard.py').read_text()
+          m=Path('scripts/merge_experiment_062_shards.py').read_text()
+          smoke=Path('scripts/smoke_experiment_062_evaluator.py').read_text()
+          required_r=(
+              'SEEDS=range(70000,71000)', 'AUDIT=set(range(70000,70005))',
+              'OPERATIVE_SPEC_ISSUE=235', "PRIMARY_STRATEGY=exp62.CONFIRMATION_AGREEMENT_STRATEGY",
+              "COMPARATOR_STRATEGY=exp62.SIGNED_RANK_30_STRATEGY", "'H5_062_pass':h5", "'H6_062_pass':h6",
+              "'utility_role':'descriptive only in Experiment 062'", "'exact_replication_of_experiment061':True", "'no_tuning':True",
+          )
+          for x in required_r: assert x in r,x
+          assert "record['experiment062_cell']=c['label']" in s
+          assert "r.get('experiment062_cell','')" in m
+          assert "set(groups)!=expected" in m and 'duplicate_audit_t' in m and 'audit_interval_mismatch' in m
+          assert 'seed=620621' in smoke and '70000..70999' in smoke
+          req=Path('evaluation_requests/experiment_062_evaluator_preflight.request').read_text()
+          assert 'issue #235' in req and '70000..70999' in req and 'no reserved outcomes' in req.lower()
+          PY
+      - name: Register evaluator preflight outcome
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          contract_status='${{ steps.contract.outcome }}'
+          {
+            echo 'Experiment 062 complete evaluator-path prospective preflight completed before any reserved evaluation request.'
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo '- operative_spec_issue: #235'
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo "- contract_status: $contract_status"
+            echo '- reserved_primary_seeds: 70000..70999 (not executed by preflight)'
+            echo '- evaluator_smoke_seed: 620621 (nonreserved implementation-only)'
+            echo '- endpoints: H5-062/H6-062 frozen; utility descriptive only'
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            echo '```'
+          } > /tmp/preflight.md
+          gh issue create --title "Experiment 062 evaluator preflight $compile_status/$smoke_status/$contract_status $GITHUB_RUN_ID" --body-file /tmp/preflight.md
+      - name: Enforce evaluator preflight success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
+          test '${{ steps.contract.outcome }}' = 'success'
