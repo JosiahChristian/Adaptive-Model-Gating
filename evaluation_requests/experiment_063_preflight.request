@@ -1,0 +1,5 @@
+Experiment 063 prospective preflight requested after specification issue #241 and before any reserved Experiment 063 outcome.
+
+Validate only implementation structure and nonreserved smoke behavior. Reserved primary seeds 71000..71999, audit seeds 71000..71004, fixed bootstrap seed/resamples, and frozen robustness R1-R6 seed ranges from issue #241 must not be executed or inspected by this preflight.
+
+The architecture must remain the exact replicated Experiment 061/062 confirmation-topology agreement veto: unchanged 30 contrasts, W+>=345, E=100, unchanged discovery selector, confirmation agreement as veto-only, no candidate reselection, no extra observations, no fitted margin, and no tuning.
