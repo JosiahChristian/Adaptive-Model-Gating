@@ -1,0 +1,11 @@
+Experiment 061 full frozen safety-repair evaluation requested after successful prospective core and evaluator-path preflights.
+
+Operative prospective specification: issue #226.
+Successful core preflight: issue #227, run 33069400755.
+Successful evaluator-path preflight: issue #228, run 33074098999, head 6b71ec841fec6ed14dc0f00d422d5ae8346159f4.
+
+Preserve the frozen Experiment 061 architecture exactly: 16 cells; fresh primary seeds 69000..69999; audit seeds 69000..69004; unchanged Experiment 055 30-contrast comparator on identical deterministic streams; W+>=345 unchanged; E=100 unchanged; discovery selector unchanged; confirmation-only topology argmax used strictly as a veto; deploy only when the discovery-selected candidate passes W+>=345 and confirmation_candidate equals discovery_candidate; no candidate reselection, no extra observations, no numeric agreement margin, and no outcome-conditioned rule.
+
+Frozen endpoints remain H5-061 (per-cell wrong-acceptance 95% Wilson upper <=0.01) and H6-061 (per-cell accepted precision >=0.99 when accepted_n>0). Utility is descriptive only. Preserve generation-time experiment061_cell provenance and deterministic evidence closure before interpretation.
+
+No Experiment 061 reserved outcome was inspected before this request. Do not change seeds, threshold, tie order, scoring transform, allocation, cell set, sample size, acceptance rule, endpoint, or interpretation branch from issue #226.
