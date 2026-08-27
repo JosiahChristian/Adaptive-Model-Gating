@@ -1,0 +1,8 @@
+Experiment 062 full replication evaluation requested after successful prospective core preflight (#236) and complete evaluator-path preflight (#237).
+
+Operative prospective specification: issue #235.
+Evaluator preflight: run 33105603421, head f47e1c56b90674794e91234192a1e75b3463601e, compile/smoke/contract all success.
+
+The evaluation preserves the exact Experiment 061 architecture without modification: 16 cells; fresh primary seeds 70000..70999; audit seeds 70000..70004; unchanged discovery selector; baseline 1 discovery / 3 confirmation and target 2 discovery / 3 confirmation allocation; 30 disjoint confirmation contrasts; W+>=345 with the exact frozen 345/344 null tails; E=100; confirmation-only topology agreement veto with no candidate reselection, numeric margin, extra observation, or extra replicate; unchanged Experiment 055 comparator on identical streams; generation-time experiment062_cell audit provenance; frozen H5-062/H6-062 endpoints; utility descriptive only.
+
+No Experiment 062 reserved outcome was inspected before this request, and no seed, threshold, tie order, scoring transform, cell set, sample size, acceptance rule, endpoint, or interpretation branch was changed from the prospective specification.
