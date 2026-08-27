@@ -1,0 +1,78 @@
+name: Experiment 063 Prospective Preflight
+on:
+  push:
+    paths: [evaluation_requests/experiment_063_preflight.request]
+permissions: {contents: read, issues: write}
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 063 smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_063.py > /tmp/smoke.log 2>&1
+      - name: Static frozen contract
+        id: contract
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/experiment_063.py').read_text()
+          required=(
+            'OPERATIVE_SPEC_ISSUE = 241',
+            'PRIMARY_SEED_START = 71000',
+            'PRIMARY_SEED_STOP = 72000',
+            'BOOTSTRAP_SEED = 63063',
+            'BOOTSTRAP_RESAMPLES = 10000',
+            "row['experiment063_cell'] = c['label']",
+            "row['experiment063_utility_descriptive_only'] = 1",
+            "row['rank63_no_extra_observations'] = 1",
+            "row['rank63_candidate_reselected'] = 0",
+          )
+          for s in required: assert s in p,s
+          req=Path('evaluation_requests/experiment_063_preflight.request').read_text()
+          assert '71000..71999' in req
+          assert 'issue #241' in req
+          assert 'R1-R6' in req
+          PY
+      - name: Register prospective preflight outcome
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          contract_status='${{ steps.contract.outcome }}'
+          {
+            echo 'Experiment 063 prospective preflight completed before any reserved outcome request.'
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo '- operative_spec_issue: #241'
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo "- contract_status: $contract_status"
+            echo '- reserved_primary_seeds: 71000..71999 (not executed by preflight)'
+            echo '- reserved_robustness_ranges: R1-R6 from #241 (not executed by preflight)'
+            echo '- smoke_seed: 630630 (nonreserved implementation-only)'
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            echo '```'
+          } > /tmp/preflight.md
+          gh issue create --title "Experiment 063 prospective preflight $compile_status/$smoke_status/$contract_status $GITHUB_RUN_ID" --body-file /tmp/preflight.md
+      - name: Enforce preflight success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
+          test '${{ steps.contract.outcome }}' = 'success'
