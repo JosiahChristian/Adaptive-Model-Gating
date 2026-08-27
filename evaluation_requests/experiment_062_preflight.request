@@ -1,0 +1,9 @@
+Experiment 062 prospective core preflight requested before any reserved outcome execution.
+
+Operative prospective specification: issue #235.
+Reserved primary seeds: 70000..70999 inclusive; these must not be executed by preflight.
+Nonreserved smoke seed: 620620 only.
+
+Validate exact replication of Experiment 061 architecture: unchanged 30-contrast W+>=345 rule, exact 345/344 null boundary, unchanged E=100, unchanged discovery selector, confirmation-topology agreement veto only, no candidate reselection, no extra observations, and Experiment 062 generation-time provenance markers.
+
+Do not request or inspect reserved Experiment 062 evaluation outcomes unless this prospective preflight passes.
