@@ -73,7 +73,7 @@ def integrity(x):
     if int(float(x.get('rank61_contrast_count',0) or 0))!=30:return False
     if int(float(x.get('rank61_w_cutoff',0) or 0))!=W_CUTOFF:return False
     if int(float(x.get('rank61_no_extra_observations',0) or 0))!=1:return False
-    if int(float(x.get('rank61_candidate_reselected',1) or 1))!=0:return False
+    if int(float(x.get('rank61_candidate_reselected',1)))!=0:return False
     vals=[float(x[f'rank55_pair_response_r{r}_{k}']) for r in range(1,6) for k in range(1,7)]
     if len(vals)!=30 or any(v==0 for v in vals) or len(set(abs(v) for v in vals))!=30:return False
     w,ranks=exp61.signed_rank_statistic_30(vals)
