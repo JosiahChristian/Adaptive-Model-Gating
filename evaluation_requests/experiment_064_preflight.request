@@ -1,0 +1,7 @@
+Experiment 064 prospective preflight request.
+
+This request is governed by operative specification issue #250, architecture provenance closure issue #251, and evaluator implementation closure issue #252.
+
+Run only repository compilation, static frozen-contract/provenance validation, and the nonreserved smoke seeds 6420000..6420005. Execute no reserved Q1-Q6 outcomes (6400000..6417999) in this preflight.
+
+No reserved Q1-Q6 outcomes have been generated or inspected before this request.
