@@ -1,0 +1,90 @@
+name: Experiment 065 Prospective Preflight
+on:
+  push:
+    paths: [evaluation_requests/experiment_065_preflight.request]
+permissions: {contents: read, issues: write}
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 065 nonreserved M0 smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_065.py > /tmp/smoke.log 2>&1
+      - name: Static frozen contract and provenance check
+        id: contract
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0,'src')
+          import experiment_065 as e
+          src=Path('src/experiment_065.py').read_text()
+          smoke=Path('scripts/smoke_experiment_065.py').read_text()
+          assert e.OPERATIVE_SPEC_ISSUE==258
+          assert e.PROVENANCE_CLOSURE_ISSUE==259
+          assert e.ARCHITECTURES==('A0','A1','A2','A3')
+          assert e.DEVELOPMENT_ROBUSTNESS_RANGES=={
+              'DQ1':(6500000,6502000),'DQ2':(6502000,6504000),
+              'DQ3':(6504000,6506000),'DQ4':(6506000,6508000),
+              'DQ5':(6508000,6510000),'DQ6':(6510000,6512000)}
+          assert e.DEVELOPMENT_PRIMARY_RANGE==(6512000,6514000)
+          assert e.VALIDATION_ROBUSTNESS_RANGES=={
+              'VQ1':(6514000,6517000),'VQ2':(6517000,6520000),
+              'VQ3':(6520000,6523000),'VQ4':(6523000,6526000),
+              'VQ5':(6526000,6529000),'VQ6':(6529000,6532000)}
+          assert e.VALIDATION_PRIMARY_RANGE==(6532000,6535000)
+          assert e.provenance_integrity()
+          assert 'exp64._underlying_accept' in src
+          assert 'exp64.confirmation_candidate' in src
+          assert "all(underlying[a] == 1 for a in ARCHITECTURES)" in src
+          assert 'all_four_accept and agreement' in src
+          assert '6540000 + i' in smoke
+          assert '6500000..6513999' in smoke and '6514000..6534999' in smoke
+          req=Path('evaluation_requests/experiment_065_preflight.request').read_text()
+          for token in ('issue #258','issue #259','no DQ/DP development outcomes','no VQ/VP validation outcomes'):
+              assert token in req,token
+          PY
+      - name: Register preflight outcome
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          contract_status='${{ steps.contract.outcome }}'
+          {
+            echo 'Experiment 065 prospective preflight completed before any DQ/DP development evaluation request and without touching reserved VQ/VP validation seeds.'
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo '- operative_spec_issue: #258'
+            echo '- implementation_provenance_issue: #259'
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo "- contract_status: $contract_status"
+            echo '- development reserved seeds: 6500000..6513999 (not executed by preflight)'
+            echo '- validation reserved seeds: 6514000..6534999 (not executed by preflight)'
+            echo '- smoke seeds: 6540000..6540005 (nonreserved)'
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            echo '```'
+          } > /tmp/preflight.md
+          gh issue create --title "Experiment 065 preflight $compile_status/$smoke_status/$contract_status $GITHUB_RUN_ID" --body-file /tmp/preflight.md
+      - name: Enforce preflight success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
+          test '${{ steps.contract.outcome }}' = 'success'
