@@ -48,7 +48,7 @@ jobs:
           assert "record['experiment063_cell']=c['label']" in s
           assert "r.get('experiment063_cell','')" in m
           assert "set(groups)!=expected" in m and 'duplicate_audit_t' in m and 'audit_interval_mismatch' in m
-          assert 'seed=630632' in smoke and '630640+i' in smoke and '71000..71999' in smoke
+          assert 'seed=620621' in smoke and '630640+i' in smoke and '71000..71999' in smoke
           assert 'robustness_report()' in r and '_stress_cube' in r and '_bootstrap_interval' in r
           req=Path('evaluation_requests/experiment_063_evaluator_preflight.request').read_text()
           assert 'issue #241' in req and 'issue #243' in req and '71000..71999' in req and 'no reserved outcomes' in req.lower()
@@ -72,7 +72,7 @@ jobs:
             echo "- contract_status: $contract_status"
             echo '- reserved_primary_seeds: 71000..71999 (not executed by preflight)'
             echo '- reserved_robustness_ranges: R1-R6 from #241/#243 (not executed by preflight)'
-            echo '- evaluator_smoke_seed: 630632; stress smoke seeds 630640..630645 (all nonreserved)'
+            echo '- evaluator_smoke_seed: 620621; stress smoke seeds 630640..630645 (all nonreserved)'
             echo '- bootstrap: seed 63063, 10,000 resamples, paired seed-level unit frozen prospectively'
             echo
             echo '```text'
