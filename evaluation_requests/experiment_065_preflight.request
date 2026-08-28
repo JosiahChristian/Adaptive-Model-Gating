@@ -1,0 +1,8 @@
+Experiment 065 prospective preflight request.
+
+Frozen scientific specification: issue #258.
+Implementation/provenance closure: issue #259.
+
+Run compile, the explicitly nonreserved M0 smoke, and static frozen-contract/provenance validation only. This preflight must generate no DQ/DP development outcomes and no VQ/VP validation outcomes.
+
+Reserved development seeds 6500000..6513999 are not authorized for this preflight. Reserved validation seeds 6514000..6534999 are not authorized for this preflight. Only the nonreserved smoke seeds 6540000..6540005 may execute.
