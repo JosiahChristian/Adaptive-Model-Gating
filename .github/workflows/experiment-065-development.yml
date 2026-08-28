@@ -36,7 +36,7 @@ jobs:
           assert e.DEVELOPMENT_PRIMARY_RANGE==(6512000,6514000)
           assert e.VALIDATION_ROBUSTNESS_RANGES=={'VQ1':(6514000,6517000),'VQ2':(6517000,6520000),'VQ3':(6520000,6523000),'VQ4':(6523000,6526000),'VQ5':(6526000,6529000),'VQ6':(6529000,6532000)}
           assert e.VALIDATION_PRIMARY_RANGE==(6532000,6535000)
-          for x in ('m0_not_subset_a0','shared_primary_stream','a0_reconstruction','confirmation_reconstruction','chunk-index','a.chunk_index<16','//16','execution_repair_issue\':265'): assert x in s,x
+          for x in ('m0_not_subset_a0','shared_primary_stream','a0_reconstruction','confirmation_reconstruction','chunk-index','a.chunk_index<16','//16',"execution_repair_issue':265"): assert x in s,x
           for x in ('wrong=accepted','ratio>=0.90','validation_seeds_touched','STOP_NO_VALIDATION','PROCEED_TO_RESERVED_VALIDATION','DP_CHUNKS=16','SECOND_EXECUTION_REPAIR_ISSUE=265','chunk_n!=125'): assert x in m,x
           PY
       - name: Register development validation outcome
