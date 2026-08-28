@@ -1,0 +1,129 @@
+name: Experiment 064 Requested Evaluation
+on:
+  push:
+    paths: [evaluation_requests/experiment_064.request]
+permissions: {contents: read, issues: write}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 064 nonreserved smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_064.py > /tmp/smoke.log 2>&1
+      - name: Static frozen execution/provenance contract
+        id: provenance
+        if: steps.compile.outcome == 'success' && steps.smoke.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0,'src')
+          import experiment_064 as e
+          s=Path('scripts/run_experiment_064_shard.py').read_text()
+          m=Path('scripts/merge_experiment_064_shards.py').read_text()
+          assert e.OPERATIVE_SPEC_ISSUE==250 and e.PROVENANCE_CLOSURE_ISSUE==251 and e.IMPLEMENTATION_CLOSURE_ISSUE==252
+          assert e.SEED_RANGES=={'Q1':(6400000,6403000),'Q2':(6403000,6406000),'Q3':(6406000,6409000),'Q4':(6409000,6412000),'Q5':(6412000,6415000),'Q6':(6415000,6418000)}
+          assert e.ARCHITECTURES==('A0','A1','A2','A3') and e.provenance_integrity()
+          for x in ("len(expected)!=3000","shared_paired_vectors","null_panel"):
+              assert x in s,x
+          for x in ("wrong=accepted","upper<=0.01","precision>=0.99","branch='D' if not integrity","no_tuning"):
+              assert x in m,x
+          PY
+      - name: Register requested validation outcome
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'; smoke_status='${{ steps.smoke.outcome }}'; provenance_status='${{ steps.provenance.outcome }}'
+          {
+            echo 'Experiment 064 requested-evaluation validation completed before reserved shard execution.'; echo
+            echo "- run_id: $GITHUB_RUN_ID"; echo "- head_sha: $GITHUB_SHA"
+            echo "- compile_status: $compile_status"; echo "- smoke_status: $smoke_status"; echo "- provenance_status: $provenance_status"
+            echo '- operative_spec_issue: 250'; echo '- provenance_closure_issue: 251'; echo '- implementation_closure_issue: 252'
+            echo '- frozen_reserved_panels: Q1-Q6, exactly 6400000..6417999 partitioned as #250/#252'
+            echo '- architectures: A0-A3 exactly as mechanically pinned before outcomes'
+            echo '- endpoint: F-064 exactly as #250; no tuning or outcome-adaptive selection'
+            echo; echo '```text'; test -f /tmp/compile.log && cat /tmp/compile.log || true; test -f /tmp/smoke.log && cat /tmp/smoke.log || true; echo '```'
+          } >/tmp/validation.md
+          gh issue create --title "Experiment 064 requested validation $compile_status/$smoke_status/$provenance_status $GITHUB_RUN_ID" --body-file /tmp/validation.md
+      - name: Enforce requested validation success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
+          test '${{ steps.provenance.outcome }}' = 'success'
+  evaluate-panels:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        panel: [Q1,Q2,Q3,Q4,Q5,Q6]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python scripts/run_experiment_064_shard.py --panel ${{ matrix.panel }} --out results/experiment_064_shards/${{ matrix.panel }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-064-${{ matrix.panel }}
+          path: results/experiment_064_shards/${{ matrix.panel }}/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 2
+  evaluate:
+    needs: evaluate-panels
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: experiment-064-Q*
+          path: results/experiment_064_shards
+          merge-multiple: false
+      - name: Normalize downloaded panel directories
+        run: |
+          for p in Q1 Q2 Q3 Q4 Q5 Q6; do
+            src="results/experiment_064_shards/experiment-064-$p"
+            test -d "$src"
+            mv "$src" "results/experiment_064_shards/$p"
+          done
+      - name: Deterministically merge frozen F-064 evidence
+        run: python scripts/merge_experiment_064_shards.py --input-root results/experiment_064_shards --out results/experiment_064
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-064-evidence
+          path: results/experiment_064/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register completed evidence pointer
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_064/report.json').read_text())
+          compact={k:r[k] for k in ('experiment','operative_spec_issue','provenance_closure_issue','implementation_closure_issue','architectures','panels','seed_ranges','n_per_panel','F_064_eligible_architectures','F_064_pass_count','integrity_pass','interpretation_branch','no_tuning')}
+          body=('Automated completed evidence pointer for Experiment 064.\n\n'
+                f"- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- artifact_name: experiment-064-evidence\n- status: completed\n'
+                '- role: prospectively frozen robustness-architecture falsification study; no recalibration or outcome-guided tuning\n'
+                '- raw evidence: all Q1-Q6 panel rows and manifests preserved inside final artifact\n'
+                '- full_report: results/experiment_064/report.json inside artifact `experiment-064-evidence`\n\n'
+                '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/experiment064_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 064 evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment064_issue.md
