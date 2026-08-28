@@ -1,4 +1,4 @@
-Experiment 065 development evaluation request.
+Experiment 065 repaired development evaluation request.
 
-Prospective boundaries: #258 specification, #259 implementation/provenance closure, #260 successful nonreserved preflight, #261 development execution closure.
-Execute only DQ1-DQ6 and DP development ranges exactly as frozen. Preserve all raw evidence and compute G-065 exactly. Do not execute VQ1-VQ6 or VP unless and until G-065 passes and a later independent validation request is prospectively recorded. No tuning from observed outcomes.
+Prospective boundaries: #258 specification, #259 implementation/provenance closure, #260 successful nonreserved preflight, #261 development execution closure, and #263 execution-only repair closure after the prior run hit the GitHub six-hour runner limit.
+Execute only DQ1-DQ6 and DP development ranges exactly as frozen. DP scientific coverage remains seeds 6512000..6513999 across the same 16 cells; execution is partitioned only into four deterministic 500-seed chunks per cell. Preserve all raw evidence and compute G-065 exactly. Do not execute VQ1-VQ6 or VP unless and until G-065 passes and a later independent validation request is prospectively recorded. No tuning from observed outcomes.
