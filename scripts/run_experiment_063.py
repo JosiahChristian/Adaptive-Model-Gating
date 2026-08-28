@@ -47,7 +47,7 @@ def summary(rows,c):
     r0=rows[0]
     if r0['strategy']==PRIMARY_STRATEGY:
         for k,v in r0.items():
-            if str(k).startswith(('rank55_','rank61_','rank62_','rank63_')):
+            if str(k).startswith(('rank55_','rank61_','rank62_','rank63_','experiment063_')):
                 out[k]=v
     return out
 
