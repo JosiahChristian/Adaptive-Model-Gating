@@ -1,0 +1,133 @@
+name: Experiment 065 Development Evaluation
+on:
+  push:
+    paths: [evaluation_requests/experiment_065_development.request]
+permissions: {contents: read, issues: write}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 065 nonreserved smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_065.py > /tmp/smoke.log 2>&1
+      - name: Static frozen development contract
+        id: contract
+        if: steps.compile.outcome == 'success' && steps.smoke.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0,'src')
+          import experiment_065 as e
+          s=Path('scripts/run_experiment_065_development_shard.py').read_text()
+          m=Path('scripts/merge_experiment_065_development.py').read_text()
+          assert e.OPERATIVE_SPEC_ISSUE==258 and e.PROVENANCE_CLOSURE_ISSUE==259 and e.provenance_integrity()
+          assert e.DEVELOPMENT_ROBUSTNESS_RANGES=={'DQ1':(6500000,6502000),'DQ2':(6502000,6504000),'DQ3':(6504000,6506000),'DQ4':(6506000,6508000),'DQ5':(6508000,6510000),'DQ6':(6510000,6512000)}
+          assert e.DEVELOPMENT_PRIMARY_RANGE==(6512000,6514000)
+          assert e.VALIDATION_ROBUSTNESS_RANGES=={'VQ1':(6514000,6517000),'VQ2':(6517000,6520000),'VQ3':(6520000,6523000),'VQ4':(6523000,6526000),'VQ5':(6526000,6529000),'VQ6':(6529000,6532000)}
+          assert e.VALIDATION_PRIMARY_RANGE==(6532000,6535000)
+          for x in ('m0_not_subset_a0','shared_primary_stream','a0_reconstruction','confirmation_reconstruction'): assert x in s,x
+          for x in ('wrong=accepted','ratio>=0.90','validation_seeds_touched','STOP_NO_VALIDATION','PROCEED_TO_RESERVED_VALIDATION'): assert x in m,x
+          PY
+      - name: Register development validation outcome
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'; smoke_status='${{ steps.smoke.outcome }}'; contract_status='${{ steps.contract.outcome }}'
+          {
+            echo 'Experiment 065 development-request validation completed before any DQ/DP execution and without touching VQ/VP.'; echo
+            echo "- run_id: $GITHUB_RUN_ID"; echo "- head_sha: $GITHUB_SHA"
+            echo "- compile_status: $compile_status"; echo "- smoke_status: $smoke_status"; echo "- contract_status: $contract_status"
+            echo '- operative_spec_issue: #258'; echo '- provenance_closure_issue: #259'; echo '- development_execution_closure_issue: #261'
+            echo '- DQ/DP development ranges: exactly #258/#261'; echo '- VQ/VP validation reservation remains untouched and gated on G-065'
+            echo; echo '```text'; test -f /tmp/compile.log && cat /tmp/compile.log || true; test -f /tmp/smoke.log && cat /tmp/smoke.log || true; echo '```'
+          } >/tmp/validation.md
+          gh issue create --title "Experiment 065 development validation $compile_status/$smoke_status/$contract_status $GITHUB_RUN_ID" --body-file /tmp/validation.md
+      - name: Enforce validation success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
+          test '${{ steps.contract.outcome }}' = 'success'
+  dq:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix: {panel: [DQ1,DQ2,DQ3,DQ4,DQ5,DQ6]}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python scripts/run_experiment_065_development_shard.py --panel ${{ matrix.panel }} --out results/experiment_065_development/${{ matrix.panel }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-065-${{ matrix.panel }}
+          path: results/experiment_065_development/${{ matrix.panel }}/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 2
+  dp:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix: {cell: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python scripts/run_experiment_065_development_shard.py --cell-index ${{ matrix.cell }} --out results/experiment_065_development/DP-cell-${{ matrix.cell }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-065-DP-cell-${{ matrix.cell }}
+          path: results/experiment_065_development/DP-cell-${{ matrix.cell }}/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 2
+  merge:
+    needs: [dq,dp]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: experiment-065-*
+          path: results/experiment_065_downloads
+          merge-multiple: false
+      - run: python scripts/merge_experiment_065_development.py --input-root results/experiment_065_downloads --out results/experiment_065_development_evidence
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-065-development-evidence
+          path: results/experiment_065_development_evidence/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register preserved development evidence
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_065_development_evidence/development_report.json').read_text())
+          compact={k:r[k] for k in ('experiment','phase','operative_spec_issue','provenance_closure_issue','execution_closure_issue','integrity_pass','development_robustness','DP','G_065_pass','interpretation_branch','validation_seeds_touched','no_tuning')}
+          body=('Automated preserved development evidence pointer for Experiment 065.\n\n'
+                f"- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- artifact_name: experiment-065-development-evidence\n- full_report: development_report.json inside artifact\n'
+                '- validation reservation: VQ1-VQ6/VP untouched by this workflow\n\n```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/e65.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 065 development evidence run $GITHUB_RUN_ID" --body-file /tmp/e65.md
