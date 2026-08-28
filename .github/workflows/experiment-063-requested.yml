@@ -1,0 +1,146 @@
+name: Experiment 063 Requested Evaluation
+on:
+  push:
+    paths: [evaluation_requests/experiment_063.request]
+permissions: {contents: read, issues: write}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 063 evaluator smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_063_evaluator.py > /tmp/smoke.log 2>&1
+      - name: Static frozen execution/provenance contract
+        id: provenance
+        if: steps.compile.outcome == 'success' && steps.smoke.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('scripts/run_experiment_063_shard.py').read_text();m=Path('scripts/merge_experiment_063_shards.py').read_text();r=Path('scripts/run_experiment_063.py').read_text();core=Path('src/experiment_063.py').read_text()
+          assert "record['experiment063_cell']=c['label']" in s
+          assert "r.get('experiment063_cell','')" in m
+          for x in ('SEEDS=range(71000,72000)','OPERATIVE_SPEC_ISSUE=241','IMPLEMENTATION_CLOSURE_ISSUE=243','BOOTSTRAP_SEED=63063','BOOTSTRAP_RESAMPLES=10000',"STRESS_CANDIDATE_ORDER=('H_ab','H_ac','H_bc')","'R_063_pass':rpass"):
+              assert x in r,x
+          assert 'PRIMARY_SEED_START = 71000' in core and 'PRIMARY_SEED_STOP = 72000' in core
+          assert 'ROBUSTNESS_SEED_RANGES' in core
+          PY
+      - name: Register requested validation outcome
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          provenance_status='${{ steps.provenance.outcome }}'
+          {
+            echo 'Experiment 063 requested-evaluation validation completed.'
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo "- provenance_status: $provenance_status"
+            echo '- operative_spec_issue: 241'
+            echo '- implementation_closure_issue: 243'
+            echo '- frozen_primary_seeds: 71000..71999'
+            echo '- frozen_robustness_ranges: R1-R6 exactly as #241/#243'
+            echo '- frozen_bootstrap: seed 63063, 10,000 paired seed-level resamples'
+            echo '- frozen repair: unchanged Experiment 061/062 W+>=345 plus confirmation-topology agreement veto'
+            echo '- endpoints: H5-063, H6-063, R-063 plus integrity; utility descriptive only'
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            echo '```'
+          } > /tmp/validation.md
+          gh issue create --title "Experiment 063 requested validation $compile_status/$smoke_status/$provenance_status $GITHUB_RUN_ID" --body-file /tmp/validation.md
+      - name: Enforce requested validation success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
+          test '${{ steps.provenance.outcome }}' = 'success'
+  prepare:
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      cells: ${{ steps.matrix.outputs.cells }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          sys.path.insert(0,'scripts')
+          from run_experiment_063 import CELLS
+          print('cells='+json.dumps([{'index':i,'dir':f'cell-{i:02d}','label':c['label']} for i,c in enumerate(CELLS)],separators=(',',':')))
+          PY
+  evaluate-shards:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.cells) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python scripts/run_experiment_063_shard.py --cell-index ${{ matrix.index }} --out results/experiment_063_shards/${{ matrix.dir }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.dir }}
+          path: results/experiment_063_shards/${{ matrix.dir }}/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 2
+  evaluate:
+    needs: evaluate-shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with: {path: results/experiment_063_shards}
+      - name: Deterministically merge primary evidence, bootstrap utility, and run frozen R1-R6 diagnostics
+        run: python scripts/merge_experiment_063_shards.py --input-root results/experiment_063_shards --out results/experiment_063
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-063-evidence
+          path: results/experiment_063/
+          if-no-files-found: error
+          compression-level: 9
+      - name: Register completed evidence pointer
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('results/experiment_063/report.json').read_text())
+          keys=('experiment','operative_spec_issue','implementation_closure_issue','evaluation_seeds','n_seeds_per_cell','cell_count','audit_seeds','strategies','primary_strategy','comparator_strategy','H5_063_pass','H6_063_pass','R_063_pass','integrity_pass','interpretation_branch','contrast_count','w_cutoff','exact_boundary','e_threshold','accept_e','repair_rule','utility_role','utility_bootstrap','robustness_role','robustness_panels','stress_candidate_cycle','t25_unit_iqr_denom','no_extra_observations','no_candidate_reselection','no_tuning','summary_row_count','audit_row_count','audit_time_interval','cells')
+          compact={k:r.get(k) for k in keys}
+          body=('Automated completed evidence pointer for Experiment 063.\n\n'
+                f"- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n"
+                '- artifact_name: experiment-063-evidence\n- status: completed\n'
+                '- execution: unchanged independently replicated topology-agreement repair across 16 primary cells plus prospectively frozen utility bootstrap and R1-R6 confirmation-level robustness diagnostics\n'
+                '- repair: unchanged W+>=345 plus confirmation-only topology agreement veto; no candidate reselection, extra observations, or fitted margin\n'
+                '- audit provenance: experiment063_cell stamped at shard generation and structurally validated during merge\n'
+                '- utility role: descriptive/decision-support only; bootstrap cannot alter the repair\n'
+                '- robustness role: frozen stress diagnostics only; no threshold fitting\n'
+                '- full_report: results/experiment_063/report.json inside artifact `experiment-063-evidence`\n\n'
+                '```json\n'+json.dumps(compact,indent=2)+'\n```\n')
+          Path('/tmp/experiment063_issue.md').write_text(body)
+          PY
+          gh issue create --title "Experiment 063 evidence run $GITHUB_RUN_ID" --body-file /tmp/experiment063_issue.md
