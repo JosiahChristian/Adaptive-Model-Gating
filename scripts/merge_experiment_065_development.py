@@ -31,10 +31,17 @@ def main():
         raw_manifest.append(str(p))
     dp_rows=[]
     start,stop=e.DEVELOPMENT_PRIMARY_RANGE
+    chunk_n=(stop-start)//4
     for i,c in enumerate(CELLS):
-        p=root/f'experiment-065-DP-cell-{i}'/'rows.jsonl';rows=load_rows(p);seeds=[int(r['seed']) for r in rows]
-        ok=(len(rows)==2000 and seeds==list(range(start,stop)) and len(set(seeds))==2000 and all(r.get('panel')=='DP' and r.get('cell')==c['label'] and int(r.get('shared_primary_stream',0))==1 for r in rows))
-        integrity=integrity and ok;dp_rows.extend(rows);raw_manifest.append(str(p))
+        cell_rows=[]
+        for chunk in range(4):
+            p=root/f'experiment-065-DP-cell-{i}-chunk-{chunk}'/'rows.jsonl';rows=load_rows(p)
+            cs=start+chunk*chunk_n;ce=cs+chunk_n;seeds=[int(r['seed']) for r in rows]
+            ok=(len(rows)==chunk_n and seeds==list(range(cs,ce)) and len(set(seeds))==chunk_n and all(r.get('panel')=='DP' and r.get('cell')==c['label'] and int(r.get('shared_primary_stream',0))==1 for r in rows))
+            integrity=integrity and ok;cell_rows.extend(rows);raw_manifest.append(str(p))
+        cell_seeds=[int(r['seed']) for r in cell_rows]
+        integrity=integrity and len(cell_rows)==2000 and cell_seeds==list(range(start,stop)) and len(set(cell_seeds))==2000
+        dp_rows.extend(cell_rows)
     expected_n=(stop-start)*len(CELLS);integrity=integrity and len(dp_rows)==expected_n
     m0=sum(int(r['m0_accept']) for r in dp_rows);a0=sum(int(r['a0_accept']) for r in dp_rows)
     subset_ok=all(not int(r['m0_accept']) or int(r['a0_accept']) for r in dp_rows);integrity=integrity and subset_ok
@@ -42,7 +49,7 @@ def main():
     m0_loss=sum(float(r['m0_operational_loss_401_600']) for r in dp_rows)/len(dp_rows);a0_loss=sum(float(r['a0_operational_loss_401_600']) for r in dp_rows)/len(dp_rows)
     dq_pass=all(v['G_065_DQ_pass'] for v in dq.values())
     gate=bool(integrity and dq_pass and coverage_pass)
-    report={'experiment':65,'phase':'development','operative_spec_issue':258,'provenance_closure_issue':259,'execution_closure_issue':261,'integrity_pass':bool(integrity),'development_robustness':dq,'DP':{'seed_range':[start,stop-1],'cell_count':len(CELLS),'paired_draws':len(dp_rows),'M0_accept_count':m0,'A0_accept_count':a0,'M0_coverage':m0/len(dp_rows),'A0_coverage':a0/len(dp_rows),'coverage_ratio_M0_over_A0':ratio,'coverage_ratio_gate_ge_0_90':coverage_pass,'subset_M0_of_A0':subset_ok,'mean_M0_operational_loss_401_600':m0_loss,'mean_A0_operational_loss_401_600':a0_loss,'mean_operational_loss_delta_M0_minus_A0':m0_loss-a0_loss,'operational_loss_role':'descriptive only; not a G-065 gate'},'G_065_pass':gate,'interpretation_branch':'PROCEED_TO_RESERVED_VALIDATION' if gate else 'STOP_NO_VALIDATION','validation_seeds_touched':False,'no_tuning':True,'raw_manifest':raw_manifest}
+    report={'experiment':65,'phase':'development','operative_spec_issue':258,'provenance_closure_issue':259,'execution_closure_issue':261,'execution_repair_issue':263,'integrity_pass':bool(integrity),'development_robustness':dq,'DP':{'seed_range':[start,stop-1],'cell_count':len(CELLS),'paired_draws':len(dp_rows),'M0_accept_count':m0,'A0_accept_count':a0,'M0_coverage':m0/len(dp_rows),'A0_coverage':a0/len(dp_rows),'coverage_ratio_M0_over_A0':ratio,'coverage_ratio_gate_ge_0_90':coverage_pass,'subset_M0_of_A0':subset_ok,'mean_M0_operational_loss_401_600':m0_loss,'mean_A0_operational_loss_401_600':a0_loss,'mean_operational_loss_delta_M0_minus_A0':m0_loss-a0_loss,'operational_loss_role':'descriptive only; not a G-065 gate'},'G_065_pass':gate,'interpretation_branch':'PROCEED_TO_RESERVED_VALIDATION' if gate else 'STOP_NO_VALIDATION','validation_seeds_touched':False,'no_tuning':True,'raw_manifest':raw_manifest}
     (out/'development_report.json').write_text(json.dumps(report,indent=2))
     (out/'decision.txt').write_text(('PASS\n' if gate else 'FAIL\n'))
 if __name__=='__main__':main()
