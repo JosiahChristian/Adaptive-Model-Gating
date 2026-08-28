@@ -1,0 +1,89 @@
+name: Experiment 063 Evaluator Prospective Preflight
+on:
+  push:
+    paths: [evaluation_requests/experiment_063_evaluator_preflight.request]
+permissions: {contents: read, issues: write}
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile repository Python
+        id: compile
+        continue-on-error: true
+        run: python -m compileall -q src scripts > /tmp/compile.log 2>&1
+      - name: Experiment 063 evaluator smoke
+        id: smoke
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: python scripts/smoke_experiment_063_evaluator.py > /tmp/smoke.log 2>&1
+      - name: Static evaluator, bootstrap, robustness, and provenance contract
+        id: contract
+        if: steps.compile.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          r=Path('scripts/run_experiment_063.py').read_text()
+          s=Path('scripts/run_experiment_063_shard.py').read_text()
+          m=Path('scripts/merge_experiment_063_shards.py').read_text()
+          smoke=Path('scripts/smoke_experiment_063_evaluator.py').read_text()
+          required_r=(
+              'SEEDS=range(71000,72000)', 'AUDIT=set(range(71000,71005))',
+              'OPERATIVE_SPEC_ISSUE=241', 'IMPLEMENTATION_CLOSURE_ISSUE=243',
+              'BOOTSTRAP_SEED=63063', 'BOOTSTRAP_RESAMPLES=10000',
+              "PRIMARY_STRATEGY=exp63.CONFIRMATION_AGREEMENT_STRATEGY",
+              "COMPARATOR_STRATEGY=exp63.SIGNED_RANK_30_STRATEGY",
+              "'H5_063_pass':h5", "'H6_063_pass':h6", "'R_063_pass':rpass",
+              "STRESS_CANDIDATE_ORDER=('H_ab','H_ac','H_bc')",
+              'T25_UNIT_IQR_DENOM=1.5700273659845985',
+              "'utility_role':'descriptive/decision-support only; never used to tune Experiment 063'",
+              "'no_tuning':True",
+          )
+          for x in required_r: assert x in r,x
+          for panel,rng in {'R1':'6351000,6353000','R2':'6353000,6355000','R3':'6355000,6357000','R4':'6357000,6359000','R5':'6359000,6361000','R6':'6361000,6363000'}.items():
+              assert f"'{panel}':({rng})" in Path('src/experiment_063.py').read_text().replace(' ','')
+          assert "record['experiment063_cell']=c['label']" in s
+          assert "r.get('experiment063_cell','')" in m
+          assert "set(groups)!=expected" in m and 'duplicate_audit_t' in m and 'audit_interval_mismatch' in m
+          assert 'seed=630632' in smoke and '630640+i' in smoke and '71000..71999' in smoke
+          assert 'robustness_report()' in r and '_stress_cube' in r and '_bootstrap_interval' in r
+          req=Path('evaluation_requests/experiment_063_evaluator_preflight.request').read_text()
+          assert 'issue #241' in req and 'issue #243' in req and '71000..71999' in req and 'no reserved outcomes' in req.lower()
+          PY
+      - name: Register evaluator preflight outcome
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          compile_status='${{ steps.compile.outcome }}'
+          smoke_status='${{ steps.smoke.outcome }}'
+          contract_status='${{ steps.contract.outcome }}'
+          {
+            echo 'Experiment 063 complete evaluator-path prospective preflight completed before any reserved primary or robustness evaluation request.'
+            echo
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- head_sha: $GITHUB_SHA"
+            echo '- operative_spec_issue: #241'
+            echo '- implementation_closure_issue: #243'
+            echo "- compile_status: $compile_status"
+            echo "- smoke_status: $smoke_status"
+            echo "- contract_status: $contract_status"
+            echo '- reserved_primary_seeds: 71000..71999 (not executed by preflight)'
+            echo '- reserved_robustness_ranges: R1-R6 from #241/#243 (not executed by preflight)'
+            echo '- evaluator_smoke_seed: 630632; stress smoke seeds 630640..630645 (all nonreserved)'
+            echo '- bootstrap: seed 63063, 10,000 resamples, paired seed-level unit frozen prospectively'
+            echo
+            echo '```text'
+            test -f /tmp/compile.log && cat /tmp/compile.log || true
+            test -f /tmp/smoke.log && cat /tmp/smoke.log || true
+            echo '```'
+          } > /tmp/preflight.md
+          gh issue create --title "Experiment 063 evaluator preflight $compile_status/$smoke_status/$contract_status $GITHUB_RUN_ID" --body-file /tmp/preflight.md
+      - name: Enforce evaluator preflight success
+        if: always()
+        run: |
+          test '${{ steps.compile.outcome }}' = 'success'
+          test '${{ steps.smoke.outcome }}' = 'success'
+          test '${{ steps.contract.outcome }}' = 'success'
