@@ -36,8 +36,8 @@ jobs:
           assert e.DEVELOPMENT_PRIMARY_RANGE==(6512000,6514000)
           assert e.VALIDATION_ROBUSTNESS_RANGES=={'VQ1':(6514000,6517000),'VQ2':(6517000,6520000),'VQ3':(6520000,6523000),'VQ4':(6523000,6526000),'VQ5':(6526000,6529000),'VQ6':(6529000,6532000)}
           assert e.VALIDATION_PRIMARY_RANGE==(6532000,6535000)
-          for x in ('m0_not_subset_a0','shared_primary_stream','a0_reconstruction','confirmation_reconstruction'): assert x in s,x
-          for x in ('wrong=accepted','ratio>=0.90','validation_seeds_touched','STOP_NO_VALIDATION','PROCEED_TO_RESERVED_VALIDATION'): assert x in m,x
+          for x in ('m0_not_subset_a0','shared_primary_stream','a0_reconstruction','confirmation_reconstruction','chunk-index','execution_repair_issue'): assert x in s,x
+          for x in ('wrong=accepted','ratio>=0.90','validation_seeds_touched','STOP_NO_VALIDATION','PROCEED_TO_RESERVED_VALIDATION','execution_repair_issue','chunk_n'): assert x in m,x
           PY
       - name: Register development validation outcome
         if: always()
@@ -45,14 +45,14 @@ jobs:
         run: |
           compile_status='${{ steps.compile.outcome }}'; smoke_status='${{ steps.smoke.outcome }}'; contract_status='${{ steps.contract.outcome }}'
           {
-            echo 'Experiment 065 development-request validation completed before any DQ/DP execution and without touching VQ/VP.'; echo
+            echo 'Experiment 065 repaired development-request validation completed before repaired DQ/DP execution and without touching VQ/VP.'; echo
             echo "- run_id: $GITHUB_RUN_ID"; echo "- head_sha: $GITHUB_SHA"
             echo "- compile_status: $compile_status"; echo "- smoke_status: $smoke_status"; echo "- contract_status: $contract_status"
-            echo '- operative_spec_issue: #258'; echo '- provenance_closure_issue: #259'; echo '- development_execution_closure_issue: #261'
-            echo '- DQ/DP development ranges: exactly #258/#261'; echo '- VQ/VP validation reservation remains untouched and gated on G-065'
+            echo '- operative_spec_issue: #258'; echo '- provenance_closure_issue: #259'; echo '- development_execution_closure_issue: #261'; echo '- execution_repair_issue: #263'
+            echo '- scientific DQ/DP ranges unchanged; DP execution only partitioned into 4x500 seeds per cell'; echo '- VQ/VP validation reservation remains untouched and gated on G-065'
             echo; echo '```text'; test -f /tmp/compile.log && cat /tmp/compile.log || true; test -f /tmp/smoke.log && cat /tmp/smoke.log || true; echo '```'
           } >/tmp/validation.md
-          gh issue create --title "Experiment 065 development validation $compile_status/$smoke_status/$contract_status $GITHUB_RUN_ID" --body-file /tmp/validation.md
+          gh issue create --title "Experiment 065 repaired development validation $compile_status/$smoke_status/$contract_status $GITHUB_RUN_ID" --body-file /tmp/validation.md
       - name: Enforce validation success
         if: always()
         run: |
@@ -83,17 +83,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 16
-      matrix: {cell: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]}
+      max-parallel: 32
+      matrix:
+        cell: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+        chunk: [0,1,2,3]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
-      - run: python scripts/run_experiment_065_development_shard.py --cell-index ${{ matrix.cell }} --out results/experiment_065_development/DP-cell-${{ matrix.cell }}
+      - run: python scripts/run_experiment_065_development_shard.py --cell-index ${{ matrix.cell }} --chunk-index ${{ matrix.chunk }} --out results/experiment_065_development/DP-cell-${{ matrix.cell }}-chunk-${{ matrix.chunk }}
       - uses: actions/upload-artifact@v4
         with:
-          name: experiment-065-DP-cell-${{ matrix.cell }}
-          path: results/experiment_065_development/DP-cell-${{ matrix.cell }}/
+          name: experiment-065-DP-cell-${{ matrix.cell }}-chunk-${{ matrix.chunk }}
+          path: results/experiment_065_development/DP-cell-${{ matrix.cell }}-chunk-${{ matrix.chunk }}/
           if-no-files-found: error
           compression-level: 9
           retention-days: 2
@@ -123,11 +125,12 @@ jobs:
           import json,os
           from pathlib import Path
           r=json.loads(Path('results/experiment_065_development_evidence/development_report.json').read_text())
-          compact={k:r[k] for k in ('experiment','phase','operative_spec_issue','provenance_closure_issue','execution_closure_issue','integrity_pass','development_robustness','DP','G_065_pass','interpretation_branch','validation_seeds_touched','no_tuning')}
-          body=('Automated preserved development evidence pointer for Experiment 065.\n\n'
+          compact={k:r[k] for k in ('experiment','phase','operative_spec_issue','provenance_closure_issue','execution_closure_issue','execution_repair_issue','integrity_pass','development_robustness','DP','G_065_pass','interpretation_branch','validation_seeds_touched','no_tuning')}
+          body=('Automated preserved repaired development evidence pointer for Experiment 065.\n\n'
                 f"- run_id: {os.environ['GITHUB_RUN_ID']}\n- head_sha: {os.environ['GITHUB_SHA']}\n"
                 '- artifact_name: experiment-065-development-evidence\n- full_report: development_report.json inside artifact\n'
+                '- execution repair: #263, sharding only; scientific specification unchanged\n'
                 '- validation reservation: VQ1-VQ6/VP untouched by this workflow\n\n```json\n'+json.dumps(compact,indent=2)+'\n```\n')
           Path('/tmp/e65.md').write_text(body)
           PY
-          gh issue create --title "Experiment 065 development evidence run $GITHUB_RUN_ID" --body-file /tmp/e65.md
+          gh issue create --title "Experiment 065 repaired development evidence run $GITHUB_RUN_ID" --body-file /tmp/e65.md
