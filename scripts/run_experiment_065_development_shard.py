@@ -61,13 +61,14 @@ def main():
         meta={'experiment':65,'role':'development_robustness','panel':a.panel,'seed_range':[start,stop-1],'n':len(rows),'shared_paired_vectors':True,'null_panel':True,'no_tuning':True}
     else:
         if a.cell_index is None or not 0<=a.cell_index<len(CELLS): raise ValueError('cell-index')
-        if a.chunk_index is None or not 0<=a.chunk_index<4: raise ValueError('chunk-index')
+        if a.chunk_index is None or not 0<=a.chunk_index<16: raise ValueError('chunk-index')
         c=CELLS[a.cell_index];full_start,full_stop=e.DEVELOPMENT_PRIMARY_RANGE
-        chunk_n=(full_stop-full_start)//4
+        chunk_n=(full_stop-full_start)//16
+        if chunk_n!=125 or (full_stop-full_start)%16: raise AssertionError('dp_chunk_partition')
         start=full_start+a.chunk_index*chunk_n;stop=start+chunk_n
         rows=[_primary_one(seed,c) for seed in range(start,stop)]
         if [r['seed'] for r in rows]!=list(range(start,stop)) or len(rows)!=chunk_n: raise AssertionError('dp_chunk_coverage')
-        meta={'experiment':65,'role':'development_primary_chunk','cell_index':a.cell_index,'chunk_index':a.chunk_index,'cell':c['label'],'seed_range':[start,stop-1],'n':len(rows),'paired_m0_a0':True,'execution_repair_issue':263,'no_tuning':True}
+        meta={'experiment':65,'role':'development_primary_chunk','cell_index':a.cell_index,'chunk_index':a.chunk_index,'cell':c['label'],'seed_range':[start,stop-1],'n':len(rows),'paired_m0_a0':True,'execution_repair_issue':265,'no_tuning':True}
     with (out/'rows.jsonl').open('w',encoding='utf-8') as f:
         for r in rows:f.write(json.dumps(r,separators=(',',':'))+'\n')
     (out/'meta.json').write_text(json.dumps(meta,indent=2))
