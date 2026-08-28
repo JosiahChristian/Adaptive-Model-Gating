@@ -19,7 +19,10 @@ assert r.exact_tail(345)==(r.P345_NUMERATOR,r.P345_DENOMINATOR)
 assert r.exact_tail(344)==(r.P344_NUMERATOR,r.P344_DENOMINATOR)
 
 # Nonreserved primary-path integrity smoke. Reserved primary seeds are 71000..71999.
-seed=630632;c=r.CELLS[0];vals=r.calibration_values()
+# Reuse the already-validated Experiment 062 evaluator smoke seed so this
+# implementation-only check exercises the same strict nonzero/unique-rank
+# integrity path without touching any Experiment 063 reserved outcome.
+seed=620621;c=r.CELLS[0];vals=r.calibration_values()
 rows=r.run_experiment_063_strategy(seed,c,r.PRIMARY_STRATEGY,vals)
 s=r.summary(rows,c)
 assert r.integrity(s)
