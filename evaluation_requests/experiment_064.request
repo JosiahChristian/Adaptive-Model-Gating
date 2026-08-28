@@ -1,0 +1,10 @@
+Experiment 064 requested evaluation
+
+Operative scientific specification: #250
+Operator provenance closure: #251
+Evaluator implementation closure: #252
+Successful prospective preflight: #253 / run 33157486387
+Requested-evaluation execution closure: #254
+
+This is the earliest requested Experiment 064 reserved evaluation and is canonical under #250.
+Execute Q1-Q6 exactly on reserved seeds 6400000..6417999 as partitioned in #250/#252/#254, using A0-A3 unchanged and the prospectively frozen F-064 endpoint and branches. No tuning, candidate reselection, threshold changes, extra observations, or outcome-adaptive selection are permitted.
