@@ -1,0 +1,13 @@
+Experiment 063 full utility/robustness evaluation requested after successful prospective core preflight and complete evaluator-path preflight (#246).
+
+Operative prospective specification: issue #241.
+Prospective evaluator implementation closure: issue #243.
+Evaluator preflight: run 33137247615, head 37dcc797f6369483a7201f3f450529bc828d212a, compile/smoke/contract all success.
+
+The evaluation preserves the exact independently replicated Experiment 061/062 repair without modification: 16 primary cells; fresh primary seeds 71000..71999; audit seeds 71000..71004; unchanged discovery selector; baseline 1 discovery / 3 confirmation and target 2 discovery / 3 confirmation allocation; exactly 30 disjoint confirmation contrasts; W+>=345 with the exact frozen 345/344 null boundary; E=100; confirmation-only topology-agreement veto with no candidate reselection, fitted margin, extra observation, extra replicate, family-specific rule, or outcome-adaptive logic; unchanged Experiment 055 comparator on identical streams; generation-time experiment063_cell provenance; frozen H5-063/H6-063 endpoints; utility descriptive only.
+
+The utility bootstrap remains fixed prospectively at random.Random(63063), exactly 10,000 paired seed-level resamples after seed-wise aggregation across all 16 cells. The frozen R1-R6 confirmation-level robustness diagnostics use exactly the seed ranges, generators, candidate cycling, and integrity reconstruction specified in #241/#243; R-063 is evaluated exactly as preregistered. No robustness panel is used for threshold fitting.
+
+Duplicate-run rule: the earliest requested-evaluation run ID is canonical prospectively; later accidental duplicates have no scientific status and may not be compared or selected by outcome.
+
+No Experiment 063 reserved primary or robustness outcome was inspected before this request, and no seed, threshold, tie order, scoring transform, cell set, sample size, acceptance rule, endpoint, stress generator, bootstrap contract, or interpretation branch was changed from the prospective specification.
