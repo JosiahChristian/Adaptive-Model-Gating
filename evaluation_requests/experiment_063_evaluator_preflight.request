@@ -3,3 +3,5 @@ Experiment 063 complete evaluator-path prospective preflight request.
 Validate the evaluator, shard, deterministic merge, primary utility bootstrap, R1-R6 robustness generators, and generation-time provenance against operative specification issue #241 and prospective evaluator implementation closure issue #243 before any reserved outcome request.
 
 Reserved primary seeds 71000..71999 and all frozen R1-R6 robustness ranges must not be executed or inspected by this preflight. Smoke validation must use only the nonreserved implementation seeds encoded in the evaluator smoke. No reserved outcomes, no tuning, and no scientific threshold, architecture, seed range, endpoint, bootstrap contract, or interpretation branch change is permitted.
+
+Execution-only repair note: rerun after replacing the nonreserved primary smoke seed 630632 with the already-validated nonreserved Experiment 062 evaluator smoke seed 620621. This change affects only the implementation smoke harness and does not alter any Experiment 063 scientific input or outcome.
