@@ -1,0 +1,14 @@
+{
+  "experiment": 65,
+  "purpose": "canonical_evidence_byte_preservation",
+  "execution_repair_issue": 267,
+  "canonical_run_id": 33220329747,
+  "canonical_head_sha": "b50cec02a327ffdf8b4490ceae079ede087cff02",
+  "source_manifest": "evaluation_requests/experiment_065_recovery.request.json",
+  "expected_dq_artifacts": 6,
+  "expected_authoritative_dp_artifacts": 10,
+  "scientific_contents_to_be_interpreted": false,
+  "validation_seeds_touched": false,
+  "no_tuning": true,
+  "note": "Preserve the already-frozen canonical evidence bytes before original Actions retention expiry. This request executes no seeds and authorizes no scientific interpretation or modification."
+}
