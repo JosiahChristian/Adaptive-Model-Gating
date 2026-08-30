@@ -1,0 +1,120 @@
+name: Experiment 065 Development Recovery
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_065_recovery.request.json
+permissions:
+  contents: read
+  actions: read
+  issues: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      missing_count: ${{ steps.plan.outputs.missing_count }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile repository Python
+        run: python -m compileall -q src scripts
+      - name: Enforce frozen recovery implementation
+        run: |
+          test "$(git hash-object scripts/run_experiment_065_development_shard.py)" = '213a82efbdc24b550ae5b152d17349c49a946bb7'
+          python scripts/run_experiment_065_recovery_chunk.py --cell-index 0 --chunk-index 0 --out /tmp/unused --plan-only > /tmp/recovery-plan.txt
+          test "$(wc -l < /tmp/recovery-plan.txt)" -eq 5
+      - name: Require settled canonical run and freeze exact missing matrix
+        id: plan
+        run: |
+          python - <<'PY'
+          import json,re,urllib.request
+          from pathlib import Path
+          repo='JosiahChristian/Adaptive-Model-Gating'
+          run_id=33220329747
+          run=json.load(urllib.request.urlopen(f'https://api.github.com/repos/{repo}/actions/runs/{run_id}'))
+          assert run['status']=='completed', run['status']
+          artifacts=[]
+          page=1
+          while True:
+              data=json.load(urllib.request.urlopen(f'https://api.github.com/repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100&page={page}'))
+              artifacts.extend(a['name'] for a in data['artifacts'])
+              if len(data['artifacts'])<100: break
+              page+=1
+          for panel in ('DQ1','DQ2','DQ3','DQ4','DQ5','DQ6'):
+              assert f'experiment-065-{panel}' in artifacts
+          manifest=json.loads(Path('evaluation_requests/experiment_065_recovery.request.json').read_text())
+          assert manifest['experiment']==65
+          assert manifest['execution_repair_issue']==267
+          assert manifest['canonical_run_id']==run_id
+          assert manifest['canonical_head_sha']=='b50cec02a327ffdf8b4490ceae079ede087cff02'
+          assert manifest['validation_seeds_touched'] is False
+          assert manifest['no_tuning'] is True
+          frozen=sorted((int(x['cell_index']),int(x['chunk_index'])) for x in manifest['canonical_successful_dp'])
+          assert len(frozen)==len(set(frozen))
+          pat=re.compile(r'^experiment-065-DP-cell-(\d+)-chunk-(\d+)$')
+          observed=sorted((int(m.group(1)),int(m.group(2))) for name in artifacts if (m:=pat.match(name)))
+          assert observed==frozen,(observed,frozen)
+          expected={(c,k) for c in range(16) for k in range(16)}
+          missing=sorted(expected-set(frozen))
+          assert 0 < len(missing) <= 256
+          matrix={'include':[{'cell':c,'chunk':k} for c,k in missing]}
+          Path('/tmp/matrix.json').write_text(json.dumps(matrix,separators=(',',':')))
+          Path('/tmp/missing_count.txt').write_text(str(len(missing)))
+          PY
+          echo "matrix=$(cat /tmp/matrix.json)" >> "$GITHUB_OUTPUT"
+          echo "missing_count=$(cat /tmp/missing_count.txt)" >> "$GITHUB_OUTPUT"
+  recover:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 32
+      matrix: ${{ fromJSON(needs.validate.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Recover one exact missing canonical coordinate
+        run: python scripts/run_experiment_065_recovery_chunk.py --cell-index ${{ matrix.cell }} --chunk-index ${{ matrix.chunk }} --out results/experiment_065_recovery/DP-cell-${{ matrix.cell }}-chunk-${{ matrix.chunk }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-065-recovery-DP-cell-${{ matrix.cell }}-chunk-${{ matrix.chunk }}
+          path: results/experiment_065_recovery/DP-cell-${{ matrix.cell }}-chunk-${{ matrix.chunk }}/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 14
+  merge:
+    needs: [validate,recover]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download canonical artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 33220329747
+          pattern: experiment-065-*
+          path: results/experiment_065_canonical_downloads
+          merge-multiple: false
+      - name: Download recovery artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: experiment-065-recovery-*
+          path: results/experiment_065_recovery_downloads
+          merge-multiple: false
+      - name: Reconstruct exact development evidence
+        run: python scripts/merge_experiment_065_recovery.py --canonical-root results/experiment_065_canonical_downloads --recovery-root results/experiment_065_recovery_downloads --manifest evaluation_requests/experiment_065_recovery.request.json --out results/experiment_065_development_evidence
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-065-development-recovered-evidence
+          path: results/experiment_065_development_evidence/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
