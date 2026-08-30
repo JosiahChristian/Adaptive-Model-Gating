@@ -1,0 +1,83 @@
+name: Experiment 065 Canonical Evidence Preservation
+
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_065_canonical_preservation.request.json
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  preserve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify settled canonical artifact-name inventory
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+          from pathlib import Path
+          repo='JosiahChristian/Adaptive-Model-Gating'
+          run_id=33220329747
+          run=json.load(urllib.request.urlopen(f'https://api.github.com/repos/{repo}/actions/runs/{run_id}'))
+          assert run['status']=='completed', run['status']
+          manifest=json.loads(Path('evaluation_requests/experiment_065_recovery.request.json').read_text())
+          request=json.loads(Path('evaluation_requests/experiment_065_canonical_preservation.request.json').read_text())
+          assert manifest['experiment']==65
+          assert manifest['execution_repair_issue']==267
+          assert manifest['canonical_run_id']==run_id
+          assert manifest['canonical_head_sha']=='b50cec02a327ffdf8b4490ceae079ede087cff02'
+          assert manifest['validation_seeds_touched'] is False
+          assert manifest['no_tuning'] is True
+          assert request['experiment']==65
+          assert request['purpose']=='canonical_evidence_byte_preservation'
+          assert request['execution_repair_issue']==267
+          assert request['canonical_run_id']==run_id
+          assert request['scientific_contents_to_be_interpreted'] is False
+          expected={f'experiment-065-DQ{i}' for i in range(1,7)}
+          expected |= {f"experiment-065-DP-cell-{x['cell_index']}-chunk-{x['chunk_index']}" for x in manifest['canonical_successful_dp']}
+          artifacts=[]
+          page=1
+          while True:
+              data=json.load(urllib.request.urlopen(f'https://api.github.com/repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100&page={page}'))
+              artifacts.extend(data['artifacts'])
+              if len(data['artifacts'])<100:
+                  break
+              page += 1
+          observed={a['name'] for a in artifacts if a['name'].startswith('experiment-065-')}
+          assert observed==expected,(sorted(observed),sorted(expected))
+          assert all(not a['expired'] for a in artifacts if a['name'] in expected)
+          inventory=[{
+              'id':a['id'],'name':a['name'],'digest':a.get('digest'),
+              'size_in_bytes':a['size_in_bytes'],'created_at':a['created_at'],
+              'expires_at':a['expires_at']
+          } for a in artifacts if a['name'] in expected]
+          Path('/tmp/canonical_inventory.json').write_text(json.dumps(sorted(inventory,key=lambda x:x['name']),indent=2))
+          PY
+      - name: Download canonical evidence bytes
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 33220329747
+          pattern: experiment-065-*
+          path: preserved/experiment-065-canonical
+          merge-multiple: false
+      - name: Attach provenance inventory
+        run: |
+          cp /tmp/canonical_inventory.json preserved/experiment-065-canonical/artifact_inventory.json
+          cp evaluation_requests/experiment_065_recovery.request.json preserved/experiment-065-canonical/frozen_recovery_manifest.json
+          cp evaluation_requests/experiment_065_canonical_preservation.request.json preserved/experiment-065-canonical/preservation_request.json
+      - name: Re-upload canonical evidence bundle without interpretation
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-065-canonical-preserved-bundle
+          path: preserved/experiment-065-canonical/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
