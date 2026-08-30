@@ -1,0 +1,32 @@
+{
+  "experiment": 65,
+  "phase": "development_recovery",
+  "execution_repair_issue": 267,
+  "canonical_run_id": 33220329747,
+  "canonical_run_conclusion": "cancelled",
+  "canonical_head_sha": "b50cec02a327ffdf8b4490ceae079ede087cff02",
+  "canonical_successful_dp": [
+    {"cell_index": 0, "chunk_index": 2},
+    {"cell_index": 0, "chunk_index": 5},
+    {"cell_index": 0, "chunk_index": 6},
+    {"cell_index": 0, "chunk_index": 9},
+    {"cell_index": 0, "chunk_index": 10},
+    {"cell_index": 0, "chunk_index": 14},
+    {"cell_index": 1, "chunk_index": 0},
+    {"cell_index": 1, "chunk_index": 5},
+    {"cell_index": 1, "chunk_index": 6},
+    {"cell_index": 1, "chunk_index": 12}
+  ],
+  "canonical_success_count": 10,
+  "canonical_expected_count": 256,
+  "missing_canonical_coordinates": 246,
+  "recovery_partition": {
+    "subshards_per_missing_coordinate": 5,
+    "seeds_per_subshard": 25,
+    "deterministic_contiguous_partition": true
+  },
+  "validation_seeds_touched": false,
+  "no_tuning": true,
+  "outcome_contents_inspected_before_freeze": false,
+  "note": "Authoritative post-cancellation artifact-name inventory frozen prospectively on issue #267 before this request. Recover only missing canonical DP coordinates; preserve all successful canonical DP artifacts and all six DQ artifacts."
+}
