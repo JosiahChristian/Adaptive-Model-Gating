@@ -7,5 +7,6 @@
   "no_scientific_draws": true,
   "no_tuning": true,
   "validation_seeds_touched": false,
+  "diagnostic_revision": 2,
   "purpose": "Verify the frozen canonical/recovery artifact partition and reconstruct exact development evidence without rerunning completed scientific work."
 }
