@@ -1,0 +1,41 @@
+name: Experiment 066 Nonreserved Runtime Benchmark
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_066_runtime_benchmark.request.json
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Enforce benchmark boundary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evaluation_requests/experiment_066_runtime_benchmark.request.json').read_text())
+          assert r == {
+            'experiment': 66,
+            'operative_spec_issue': 269,
+            'preflight_issue': 271,
+            'runtime_only': True,
+            'reserved_outcomes_authorized': False,
+            'validation_seeds_touched': False,
+            'no_tuning': True
+          }
+          PY
+      - name: Benchmark one fixed-policy primary draw on nonreserved seed
+        run: |
+          /usr/bin/time -f 'elapsed_seconds=%e' python - <<'PY'
+          import sys
+          sys.path.insert(0,'src');sys.path.insert(0,'scripts')
+          from experiment_051 import CELLS
+          from run_experiment_066_development_shard import _primary_one
+          _primary_one(90002001, CELLS[0])
+          print('nonreserved runtime mechanics completed; scientific values intentionally not printed')
+          PY
