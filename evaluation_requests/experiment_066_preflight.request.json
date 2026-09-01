@@ -3,6 +3,7 @@
   "operative_spec_issue": 269,
   "provenance_closure_issue": 270,
   "preflight_only": true,
+  "evidence_fields_recheck": true,
   "reserved_outcomes_authorized": false,
   "validation_seeds_touched": false,
   "no_tuning": true
