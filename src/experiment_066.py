@@ -54,6 +54,12 @@ def external_candidate(source_seed: int, source_start: int) -> str:
     return CANDIDATE_ORDER[(int(source_seed) - int(source_start)) % len(CANDIDATE_ORDER)]
 
 
+def _tie_flag(scores) -> int:
+    values = [float(scores[h]) for h in CANDIDATE_ORDER]
+    maximum = max(values)
+    return int(sum(int(v == maximum) for v in values) > 1)
+
+
 def m1_from_candidates(candidate: str, replica_candidates):
     candidates = tuple(replica_candidates)
     if candidate not in CANDIDATE_ORDER:
@@ -76,6 +82,26 @@ def m1_from_candidates(candidate: str, replica_candidates):
     }
 
 
+def confirmation_cube_details(cube):
+    mats = {}
+    for r in range(1, 6):
+        conf = {
+            pair: sum(cube[(r, pair)]) / 3.0
+            for h in CANDIDATE_ORDER
+            for pair in exp64.EDGE_PAIRS[h]
+        }
+        mats[r] = ({}, conf)
+    y_conf, scores_conf, candidate = exp61.confirmation_profile_061(mats)
+    if candidate != exp64.confirmation_candidate(cube):
+        raise AssertionError('confirmation_candidate_reconstruction')
+    return {
+        'confirmation_candidate': candidate,
+        'confirmation_profile': tuple(float(x) for x in y_conf),
+        'confirmation_scores': {h: float(scores_conf[h]) for h in CANDIDATE_ORDER},
+        'topology_tie_flag': _tie_flag(scores_conf),
+    }
+
+
 def stress_replica(panel: str, source_seed: int, source_start: int, replica_index: int):
     family = q_family(panel)
     rs = replica_seed(source_seed, replica_index)
@@ -84,11 +110,11 @@ def stress_replica(panel: str, source_seed: int, source_start: int, replica_inde
     expected = external_candidate(source_seed, source_start)
     if generated_candidate != expected:
         raise AssertionError('candidate_cycle_mapping')
-    confirmation_candidate = exp64.confirmation_candidate(cube)
+    detail = confirmation_cube_details(cube)
     return {
         'replica_index': replica_index,
         'replica_seed': rs,
-        'confirmation_candidate': confirmation_candidate,
+        **detail,
     }
 
 
@@ -126,6 +152,7 @@ def primary_confirmation_replica(source_seed: int, cell, replica_index: int):
         'confirmation_candidate': confirmation_candidate,
         'confirmation_profile': tuple(float(x) for x in y_conf),
         'confirmation_scores': {h: float(scores_conf[h]) for h in CANDIDATE_ORDER},
+        'topology_tie_flag': _tie_flag(scores_conf),
         'discovery_used': False,
     }
 
