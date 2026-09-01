@@ -20,15 +20,18 @@ jobs:
         run: python -m compileall -q src scripts
       - name: Enforce frozen scientific implementation
         run: test "$(git hash-object scripts/run_experiment_065_development_shard.py)" = '213a82efbdc24b550ae5b152d17349c49a946bb7'
-      - name: Verify exact canonical/recovery artifact partition without reading outcomes
+      - name: Verify preserved canonical source and exact recovery artifact partition
         run: |
           python - <<'PY'
           import json, os, re, urllib.request
           from pathlib import Path
 
           repo = 'JosiahChristian/Adaptive-Model-Gating'
-          canonical_run_id = 33220329747
+          canonical_source_run_id = 33220329747
+          canonical_preservation_run_id = 33295661114
           recovery_run_id = 33285145875
+          preserved_name = 'experiment-065-canonical-preserved-bundle'
+          preserved_digest = 'sha256:db2aa7b3202fe5ee281dec0b18f1554176f9f92bfeda8e64ac9e96520d988a60'
           token = os.environ['GH_TOKEN']
 
           def api(path):
@@ -43,79 +46,83 @@ jobs:
               with urllib.request.urlopen(req) as response:
                   return json.load(response)
 
-          def artifact_names(run_id):
-              names = []
+          def artifacts(run_id):
+              items = []
               page = 1
               while True:
                   data = api(f'/actions/runs/{run_id}/artifacts?per_page=100&page={page}')
                   batch = data['artifacts']
-                  names.extend(a['name'] for a in batch if not a['expired'])
+                  items.extend(batch)
                   if len(batch) < 100:
-                      return names
+                      return items
                   page += 1
-
-          canonical_run = api(f'/actions/runs/{canonical_run_id}')
-          recovery_run = api(f'/actions/runs/{recovery_run_id}')
-          assert canonical_run['status'] == 'completed', canonical_run['status']
-          assert recovery_run['status'] == 'completed', recovery_run['status']
 
           manifest = json.loads(Path('evaluation_requests/experiment_065_recovery.request.json').read_text())
           assert manifest['experiment'] == 65
           assert manifest['execution_repair_issue'] == 267
-          assert manifest['canonical_run_id'] == canonical_run_id
+          assert manifest['canonical_run_id'] == canonical_source_run_id
           assert manifest['canonical_head_sha'] == 'b50cec02a327ffdf8b4490ceae079ede087cff02'
           assert manifest['validation_seeds_touched'] is False
           assert manifest['no_tuning'] is True
 
-          canonical = artifact_names(canonical_run_id)
-          recovery = artifact_names(recovery_run_id)
+          preservation_run = api(f'/actions/runs/{canonical_preservation_run_id}')
+          recovery_run = api(f'/actions/runs/{recovery_run_id}')
+          preservation_items = [a for a in artifacts(canonical_preservation_run_id) if a['name'] == preserved_name]
+          recovery_items = [a for a in artifacts(recovery_run_id) if not a['expired']]
 
-          for panel in ('DQ1','DQ2','DQ3','DQ4','DQ5','DQ6'):
-              assert f'experiment-065-{panel}' in canonical
-
-          canonical_pat = re.compile(r'^experiment-065-DP-cell-(\d+)-chunk-(\d+)$')
-          recovery_pat = re.compile(r'^experiment-065-recovery-DP-cell-(\d+)-chunk-(\d+)$')
-          observed_canonical = sorted(
-              (int(m.group(1)), int(m.group(2)))
-              for name in canonical if (m := canonical_pat.match(name))
-          )
           frozen_canonical = sorted(
               (int(x['cell_index']), int(x['chunk_index']))
               for x in manifest['canonical_successful_dp']
           )
-
           expected = {(cell, chunk) for cell in range(16) for chunk in range(16)}
           frozen_missing = sorted(expected - set(frozen_canonical))
+          recovery_pat = re.compile(r'^experiment-065-recovery-DP-cell-(\d+)-chunk-(\d+)$')
           observed_recovery = sorted(
               (int(m.group(1)), int(m.group(2)))
-              for name in recovery if (m := recovery_pat.match(name))
+              for a in recovery_items
+              if (m := recovery_pat.match(a['name']))
           )
-          missing_recovery_artifacts = sorted(set(frozen_missing) - set(observed_recovery))
-          unexpected_recovery_artifacts = sorted(set(observed_recovery) - set(frozen_missing))
-          duplicate_recovery_artifacts = sorted({x for x in observed_recovery if observed_recovery.count(x) > 1})
+          missing_recovery = sorted(set(frozen_missing) - set(observed_recovery))
+          unexpected_recovery = sorted(set(observed_recovery) - set(frozen_missing))
+          duplicates = sorted({x for x in observed_recovery if observed_recovery.count(x) > 1})
 
           diagnostic = {
-              'canonical_artifact_count': len(observed_canonical),
-              'frozen_canonical_count': len(frozen_canonical),
+              'canonical_source_run_id': canonical_source_run_id,
+              'canonical_source_original_artifacts_expired': True,
+              'canonical_preservation_run_id': canonical_preservation_run_id,
+              'preservation_run_status': preservation_run['status'],
+              'preservation_run_conclusion': preservation_run.get('conclusion'),
+              'preserved_bundle_matches': len(preservation_items),
+              'preserved_bundle_expired': preservation_items[0]['expired'] if preservation_items else None,
+              'preserved_bundle_digest': preservation_items[0].get('digest') if preservation_items else None,
+              'frozen_canonical_dp_count': len(frozen_canonical),
               'expected_recovery_count': len(frozen_missing),
               'observed_recovery_count': len(observed_recovery),
-              'missing_recovery_artifact_coordinates': missing_recovery_artifacts,
-              'unexpected_recovery_artifact_coordinates': unexpected_recovery_artifacts,
-              'duplicate_recovery_artifact_coordinates': duplicate_recovery_artifacts,
+              'missing_recovery_artifact_coordinates': missing_recovery,
+              'unexpected_recovery_artifact_coordinates': unexpected_recovery,
+              'duplicate_recovery_artifact_coordinates': duplicates,
+              'recovery_run_status': recovery_run['status'],
+              'recovery_run_conclusion': recovery_run.get('conclusion'),
           }
           Path('artifact_partition_diagnostic.json').write_text(json.dumps(diagnostic, indent=2) + '\n')
           print(json.dumps(diagnostic, sort_keys=True))
 
+          assert preservation_run['status'] == 'completed'
+          assert preservation_run.get('conclusion') == 'success'
+          assert len(preservation_items) == 1
+          assert preservation_items[0]['expired'] is False
+          assert preservation_items[0].get('digest') == preserved_digest
+          assert recovery_run['status'] == 'completed'
+          assert len(frozen_canonical) == 10
           assert len(frozen_canonical) == len(set(frozen_canonical))
-          assert observed_canonical == frozen_canonical, (observed_canonical, frozen_canonical)
-          assert not missing_recovery_artifacts, missing_recovery_artifacts
-          assert not unexpected_recovery_artifacts, unexpected_recovery_artifacts
-          assert not duplicate_recovery_artifacts, duplicate_recovery_artifacts
-          assert len(observed_recovery) == len(set(observed_recovery))
+          assert len(frozen_missing) == 246
+          assert not missing_recovery, missing_recovery
+          assert not unexpected_recovery, unexpected_recovery
+          assert not duplicates, duplicates
+          assert len(observed_recovery) == 246
           assert set(frozen_canonical).isdisjoint(observed_recovery)
           assert set(frozen_canonical) | set(observed_recovery) == expected
-
-          print(f'Artifact-only partition verified: {len(frozen_canonical)} canonical + {len(observed_recovery)} recovery = 256 DP coordinates.')
+          print('Artifact-only partition verified: 10 preserved canonical DP + 246 recovery DP = 256 coordinates; preserved canonical bundle is authoritative.')
           PY
       - name: Preserve coordinate-only partition diagnostic
         if: always()
@@ -133,15 +140,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Download frozen canonical artifacts
+      - name: Download preserved frozen canonical bundle
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
-          run-id: 33220329747
-          pattern: experiment-065-*
+          run-id: 33295661114
+          name: experiment-065-canonical-preserved-bundle
           path: results/experiment_065_canonical_downloads
-          merge-multiple: false
       - name: Download completed recovery artifacts
         uses: actions/download-artifact@v4
         with:
