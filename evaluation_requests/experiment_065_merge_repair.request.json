@@ -1,0 +1,11 @@
+{
+  "experiment": 65,
+  "execution_repair_issue": 267,
+  "repair_scope": "merge_only",
+  "canonical_run_id": 33220329747,
+  "recovery_run_id": 33285145875,
+  "no_scientific_draws": true,
+  "no_tuning": true,
+  "validation_seeds_touched": false,
+  "purpose": "Verify the frozen canonical/recovery artifact partition and reconstruct exact development evidence without rerunning completed scientific work."
+}
