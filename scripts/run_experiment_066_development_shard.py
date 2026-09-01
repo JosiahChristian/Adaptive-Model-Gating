@@ -23,10 +23,25 @@ def _operational_loss(rows):
 
 def _primary_one(seed, c):
     source_stream = e61.generate_experiment_061_stream(seed, c)
-    groups_a0, a0_accept, _, _, path, _, _, _, _, _ = e61.infer_confirmation_agreement_061(source_stream)
+    groups_a0, a0_accept, _, _, path, _, _, _, y_conf, scores_conf = e61.infer_confirmation_agreement_061(source_stream)
     candidate = path[0]['candidate']
-    if candidate not in e66.CANDIDATE_ORDER:
+    confirmation_candidate = path[0]['confirmation_candidate']
+    if candidate not in e66.CANDIDATE_ORDER or confirmation_candidate not in e66.CANDIDATE_ORDER:
         raise AssertionError('source_candidate')
+
+    source_contrasts = tuple(float(x) for row in path for x in row['pairwise_responses'])
+    if len(source_contrasts) != 30:
+        raise AssertionError('a0_contrast_count')
+    reconstructed_wplus, reconstructed_ranks = e61.base.signed_rank_statistic_30(source_contrasts)
+    if reconstructed_wplus != path[-1]['wplus'] or tuple(reconstructed_ranks) != tuple(path[-1]['ranks']):
+        raise AssertionError('a0_rank_reconstruction')
+    source_topology_scores = {h: float(scores_conf[h]) for h in e66.CANDIDATE_ORDER}
+    reconstructed_confirmation = max(e66.CANDIDATE_ORDER, key=lambda h: (source_topology_scores[h], -e66.CANDIDATE_ORDER.index(h)))
+    if reconstructed_confirmation != confirmation_candidate:
+        raise AssertionError('a0_topology_reconstruction')
+    reconstructed_a0 = int(reconstructed_wplus >= e61.W_CUTOFF and confirmation_candidate == candidate)
+    if reconstructed_a0 != int(a0_accept):
+        raise AssertionError('a0_accept_reconstruction')
 
     m1 = e66.primary_m1(seed, c, candidate)
     if any(r['discovery_used'] is not False for r in m1['replicas']):
@@ -39,9 +54,8 @@ def _primary_one(seed, c):
     vals = calibration_values()
     tau, _, k3, la, lb, lc, lab, lac, lbc, *_ = vals
 
-    # Compute both source-stream policies for every seed, independent of the
-    # observed acceptance decisions. This fixes runtime plumbing prospectively
-    # and makes A0/M1 operational-loss assignment a deterministic lookup.
+    # Both source-stream policies are evaluated for every seed regardless of
+    # M1/A0 decisions; decisions merely select a precomputed policy loss.
     fallback_rows = e61.base.run_triad_persistence_on_stream(
         seed, f'experiment066_fallback_{c["label"]}', tau, k3, source_stream
     )
@@ -58,6 +72,8 @@ def _primary_one(seed, c):
     candidate_correct = int(candidate == truth)
     m1_correct = int(m1_accept and candidate_correct)
     a0_correct = int(a0_accept and candidate_correct)
+    source_max = max(source_topology_scores.values())
+    source_tie = int(sum(int(v == source_max) for v in source_topology_scores.values()) > 1)
 
     return {
         'panel': 'DP',
@@ -75,6 +91,15 @@ def _primary_one(seed, c):
         'a0_accept': a0_accept,
         'a0_correct': a0_correct,
         'a0_wrong_accept': int(a0_accept and not candidate_correct),
+        'a0_wplus': int(reconstructed_wplus),
+        'a0_w_cutoff': int(e61.W_CUTOFF),
+        'a0_pairwise_confirmation': source_contrasts,
+        'a0_ranks': tuple(int(x) for x in reconstructed_ranks),
+        'a0_confirmation_candidate': confirmation_candidate,
+        'a0_confirmation_profile': tuple(float(x) for x in y_conf),
+        'a0_confirmation_scores': source_topology_scores,
+        'a0_topology_tie_flag': source_tie,
+        'a0_topology_agreement': int(confirmation_candidate == candidate),
         'fallback_operational_loss_401_600': fallback_loss,
         'deploy_candidate_operational_loss_401_600': deploy_loss,
         'm1_operational_loss_401_600': deploy_loss if m1_accept else fallback_loss,
