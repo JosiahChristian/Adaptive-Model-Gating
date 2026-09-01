@@ -73,9 +73,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python - <<'PY'
-          import io, json, os, urllib.request, zipfile
-          from pathlib import Path
+          python - <<'PY' > /tmp/experiment065-recovery-artifacts.tsv
+          import json, os, urllib.request
           repo='JosiahChristian/Adaptive-Model-Gating'
           run=33285145875
           token=os.environ['GH_TOKEN']
@@ -91,20 +90,22 @@ jobs:
           live=[a for a in arts if a['name'].startswith('experiment-065-recovery-') and not a['expired']]
           by_name={a['name']:a for a in live}
           assert len(by_name)==246, f'unexpected live recovery artifact count: {len(by_name)}'
-          root=Path('results/experiment_065_recovery_downloads')
-          root.mkdir(parents=True,exist_ok=True)
           for name in sorted(by_name):
-              a=by_name[name]
-              req=urllib.request.Request(a['archive_download_url'],headers=headers)
-              with urllib.request.urlopen(req) as resp:
-                  payload=resp.read()
-              target=root/name
-              target.mkdir(parents=True,exist_ok=False)
-              with zipfile.ZipFile(io.BytesIO(payload)) as zf:
-                  zf.extractall(target)
-          downloaded={p.name for p in root.iterdir() if p.is_dir()}
-          assert downloaded==set(by_name), (len(downloaded), len(by_name))
+              print(f"{name}\t{by_name[name]['id']}")
           PY
+          rm -rf results/experiment_065_recovery_downloads
+          mkdir -p results/experiment_065_recovery_downloads
+          while IFS=$'\t' read -r name artifact_id; do
+            target="results/experiment_065_recovery_downloads/$name"
+            mkdir -p "$target"
+            curl --fail --silent --show-error --location \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/JosiahChristian/Adaptive-Model-Gating/actions/artifacts/$artifact_id/zip" \
+              -o /tmp/experiment065-artifact.zip
+            unzip -q /tmp/experiment065-artifact.zip -d "$target"
+          done < /tmp/experiment065-recovery-artifacts.tsv
+          test "$(find results/experiment_065_recovery_downloads -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 246
       - name: Reconstruct exact development evidence
         run: python scripts/merge_experiment_065_recovery.py --canonical-root results/experiment_065_canonical_downloads --recovery-root results/experiment_065_recovery_downloads --manifest evaluation_requests/experiment_065_recovery.request.json --out results/experiment_065_development_evidence
       - name: Assert exact closure before preservation
