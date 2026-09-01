@@ -83,22 +83,48 @@ jobs:
               (int(x['cell_index']), int(x['chunk_index']))
               for x in manifest['canonical_successful_dp']
           )
-          assert len(frozen_canonical) == len(set(frozen_canonical))
-          assert observed_canonical == frozen_canonical, (observed_canonical, frozen_canonical)
 
           expected = {(cell, chunk) for cell in range(16) for chunk in range(16)}
-          missing = sorted(expected - set(frozen_canonical))
+          frozen_missing = sorted(expected - set(frozen_canonical))
           observed_recovery = sorted(
               (int(m.group(1)), int(m.group(2)))
               for name in recovery if (m := recovery_pat.match(name))
           )
+          missing_recovery_artifacts = sorted(set(frozen_missing) - set(observed_recovery))
+          unexpected_recovery_artifacts = sorted(set(observed_recovery) - set(frozen_missing))
+          duplicate_recovery_artifacts = sorted({x for x in observed_recovery if observed_recovery.count(x) > 1})
+
+          diagnostic = {
+              'canonical_artifact_count': len(observed_canonical),
+              'frozen_canonical_count': len(frozen_canonical),
+              'expected_recovery_count': len(frozen_missing),
+              'observed_recovery_count': len(observed_recovery),
+              'missing_recovery_artifact_coordinates': missing_recovery_artifacts,
+              'unexpected_recovery_artifact_coordinates': unexpected_recovery_artifacts,
+              'duplicate_recovery_artifact_coordinates': duplicate_recovery_artifacts,
+          }
+          Path('artifact_partition_diagnostic.json').write_text(json.dumps(diagnostic, indent=2) + '\n')
+          print(json.dumps(diagnostic, sort_keys=True))
+
+          assert len(frozen_canonical) == len(set(frozen_canonical))
+          assert observed_canonical == frozen_canonical, (observed_canonical, frozen_canonical)
+          assert not missing_recovery_artifacts, missing_recovery_artifacts
+          assert not unexpected_recovery_artifacts, unexpected_recovery_artifacts
+          assert not duplicate_recovery_artifacts, duplicate_recovery_artifacts
           assert len(observed_recovery) == len(set(observed_recovery))
-          assert observed_recovery == missing, (observed_recovery, missing)
           assert set(frozen_canonical).isdisjoint(observed_recovery)
           assert set(frozen_canonical) | set(observed_recovery) == expected
 
           print(f'Artifact-only partition verified: {len(frozen_canonical)} canonical + {len(observed_recovery)} recovery = 256 DP coordinates.')
           PY
+      - name: Preserve coordinate-only partition diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-065-artifact-partition-diagnostic
+          path: artifact_partition_diagnostic.json
+          if-no-files-found: error
+          retention-days: 30
   merge:
     needs: validate-artifact-partition
     runs-on: ubuntu-latest
