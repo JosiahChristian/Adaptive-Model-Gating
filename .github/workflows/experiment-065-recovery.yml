@@ -94,15 +94,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Download canonical artifacts
+      - name: Download preserved canonical evidence bundle
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
-          run-id: 33220329747
-          pattern: experiment-065-*
+          run-id: 33295661114
+          name: experiment-065-canonical-preserved-bundle
           path: results/experiment_065_canonical_downloads
-          merge-multiple: false
       - name: Download recovery artifacts
         uses: actions/download-artifact@v4
         with:
