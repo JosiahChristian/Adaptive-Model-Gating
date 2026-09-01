@@ -1,0 +1,123 @@
+name: Experiment 066 Development Batch 0
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_066_development_batch0.request.json
+permissions:
+  contents: read
+  issues: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      dp_matrix: ${{ steps.matrix.outputs.dp_matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin frozen implementation
+        run: |
+          test "$(git hash-object src/experiment_066.py)" = '5c5d70fc59510129cdd87e181500febdbc359fb2'
+          test "$(git hash-object scripts/run_experiment_066_development_shard.py)" = 'f82f01ba245f1e6e05e23181e1146c9a2d3c127c'
+          test "$(git hash-object scripts/merge_experiment_066_development.py)" = '7751207d92274e4cd94c4ddd83acd402e5f8d97a'
+          python -m compileall -q src/experiment_066.py scripts/run_experiment_066_development_shard.py scripts/merge_experiment_066_development.py
+      - name: Enforce frozen Batch 0 request
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evaluation_requests/experiment_066_development_batch0.request.json').read_text())
+          assert r == {
+            'experiment':66,
+            'operative_spec_issue':269,
+            'provenance_closure_issue':270,
+            'preflight_issue':271,
+            'execution_closure_issue':272,
+            'batch':0,
+            'dq_panels':['DQ1','DQ2','DQ3','DQ4','DQ5','DQ6'],
+            'dp_cells':[0,1,2,3,4,5],
+            'dp_chunk_count':40,
+            'dp_shard_n':50,
+            'source_blob':'5c5d70fc59510129cdd87e181500febdbc359fb2',
+            'runner_blob':'f82f01ba245f1e6e05e23181e1146c9a2d3c127c',
+            'merge_blob':'7751207d92274e4cd94c4ddd83acd402e5f8d97a',
+            'reserved_development_authorized':True,
+            'validation_seeds_touched':False,
+            'no_tuning':True
+          }
+          PY
+      - name: Nonreserved A0 and M1 provenance smoke
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0,'src')
+          import experiment_061 as e61
+          import experiment_066 as e66
+          from experiment_051 import CELLS
+          seed=90002002;c=CELLS[0]
+          stream=e61.generate_experiment_061_stream(seed,c)
+          _,a0,_,_,path,_,_,_,_,scores=e61.infer_confirmation_agreement_061(stream)
+          cand=path[0]['candidate'];conf=path[0]['confirmation_candidate']
+          vals=tuple(float(x) for row in path for x in row['pairwise_responses'])
+          w,ranks=e61.base.signed_rank_statistic_30(vals)
+          assert len(vals)==30 and w==path[-1]['wplus'] and tuple(ranks)==tuple(path[-1]['ranks'])
+          rebuilt=max(e66.CANDIDATE_ORDER,key=lambda h:(float(scores[h]),-e66.CANDIDATE_ORDER.index(h)))
+          assert rebuilt==conf and int(w>=345 and conf==cand)==int(a0)
+          m=e66.primary_m1(seed,c,cand)
+          assert len(m['replicas'])==5 and all(r['discovery_used'] is False for r in m['replicas'])
+          assert all(len(r['confirmation_profile'])==6 and set(r['confirmation_scores'])==set(e66.CANDIDATE_ORDER) for r in m['replicas'])
+          print('nonreserved provenance smoke passed; no reserved outcomes executed')
+          PY
+      - id: matrix
+        name: Freeze Batch 0 matrix mechanically
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          include=[{'cell':c,'chunk':k} for c in range(0,6) for k in range(40)]
+          assert len(include)==240
+          print('dp_matrix='+json.dumps({'include':include},separators=(',',':')))
+          PY
+
+  dq:
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        panel: [DQ1,DQ2,DQ3,DQ4,DQ5,DQ6]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Evaluate frozen development robustness panel
+        run: python scripts/run_experiment_066_development_shard.py --panel ${{ matrix.panel }} --out results/${{ matrix.panel }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-066-development-${{ matrix.panel }}
+          path: results/${{ matrix.panel }}/
+          if-no-files-found: error
+          retention-days: 30
+
+  dp:
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.validate.outputs.dp_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Evaluate frozen primary shard
+        run: python scripts/run_experiment_066_development_shard.py --cell-index ${{ matrix.cell }} --chunk-index ${{ matrix.chunk }} --out results/dp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-066-development-DP-cell-${{ matrix.cell }}-chunk-${{ matrix.chunk }}
+          path: results/dp/
+          if-no-files-found: error
+          retention-days: 30
