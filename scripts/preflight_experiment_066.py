@@ -30,6 +30,17 @@ def _outside_reserved(seed):
     return all(not (start <= seed < stop) for start, stop in _all_reserved_and_derived_intervals())
 
 
+def _check_replica(r):
+    assert len(r['confirmation_profile']) == 6
+    assert set(r['confirmation_scores']) == set(e66.CANDIDATE_ORDER)
+    scores = r['confirmation_scores']
+    reconstructed = max(e66.CANDIDATE_ORDER, key=lambda h: (float(scores[h]), -e66.CANDIDATE_ORDER.index(h)))
+    assert reconstructed == r['confirmation_candidate']
+    maximum = max(float(scores[h]) for h in e66.CANDIDATE_ORDER)
+    tie = int(sum(int(float(scores[h]) == maximum) for h in e66.CANDIDATE_ORDER) > 1)
+    assert tie == int(r['topology_tie_flag'])
+
+
 def main():
     assert e66.provenance_integrity()
     assert e66.CANDIDATE_ORDER == ('H_ab', 'H_ac', 'H_bc')
@@ -50,6 +61,8 @@ def main():
     assert len(stress['replicas']) == 5
     assert [r['replica_index'] for r in stress['replicas']] == [1, 2, 3, 4, 5]
     assert [r['replica_seed'] for r in stress['replicas']] == [e66.replica_seed(SMOKE_STRESS_SEED, j) for j in range(1, 6)]
+    for r in stress['replicas']:
+        _check_replica(r)
     assert stress['m1_accept'] in (0, 1)
     assert int(stress['e_value'] >= 100.0) == stress['m1_accept']
 
@@ -61,9 +74,11 @@ def main():
     assert len(primary['replicas']) == 5
     assert all(r['discovery_used'] is False for r in primary['replicas'])
     assert all(r['replica_seed'] == e66.replica_seed(SMOKE_PRIMARY_SEED, r['replica_index']) for r in primary['replicas'])
+    for r in primary['replicas']:
+        _check_replica(r)
     assert int(primary['e_value'] >= 100.0) == primary['m1_accept']
 
-    print('Experiment 066 prospective preflight passed: frozen five-replica topology-unanimity mechanics and nonreserved smoke isolation verified; no reserved outcomes executed.')
+    print('Experiment 066 prospective preflight passed: frozen five-replica topology-unanimity mechanics, reconstructable evidence fields, and nonreserved smoke isolation verified; no reserved outcomes executed.')
 
 
 if __name__ == '__main__':
