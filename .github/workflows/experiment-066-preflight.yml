@@ -27,7 +27,7 @@ jobs:
             'operative_spec_issue': 269,
             'provenance_closure_issue': 270,
             'preflight_only': True,
-            'evidence_fields_recheck': True,
+            'evidence_fields_recheck': 2,
             'reserved_outcomes_authorized': False,
             'validation_seeds_touched': False,
             'no_tuning': True
