@@ -1,0 +1,104 @@
+name: Experiment 065 Merge-Only Evidence Closure
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_065_merge_only.request.json
+permissions:
+  contents: read
+  actions: read
+  issues: write
+jobs:
+  merge_only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Enforce frozen merge implementation and request
+        run: |
+          test "$(git hash-object scripts/merge_experiment_065_recovery.py)" = '5310a172e57914615644f3a6309496a321fba358'
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evaluation_requests/experiment_065_merge_only.request.json').read_text())
+          assert r == {
+            'experiment': 65,
+            'execution_repair_issue': 267,
+            'canonical_preservation_run_id': 33295661114,
+            'recovery_run_id': 33285145875,
+            'merge_only': True,
+            'scientific_reexecution': False,
+            'validation_seeds_touched': False,
+            'no_tuning': True
+          }
+          PY
+      - name: Verify required source artifacts are live
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          repo='JosiahChristian/Adaptive-Model-Gating'
+          token=os.environ['GH_TOKEN']
+          def get(url):
+              req=urllib.request.Request(url,headers={'Authorization':f'Bearer {token}','Accept':'application/vnd.github+json'})
+              return json.load(urllib.request.urlopen(req))
+          def arts(run):
+              out=[]; page=1
+              while True:
+                  d=get(f'https://api.github.com/repos/{repo}/actions/runs/{run}/artifacts?per_page=100&page={page}')
+                  out.extend(d['artifacts'])
+                  if len(d['artifacts'])<100: return out
+                  page+=1
+          canonical=arts(33295661114)
+          c=[a for a in canonical if a['name']=='experiment-065-canonical-preserved-bundle' and not a['expired']]
+          assert len(c)==1, 'preserved canonical bundle missing/expired'
+          recovery=arts(33285145875)
+          live=[a for a in recovery if a['name'].startswith('experiment-065-recovery-') and not a['expired']]
+          names={a['name'] for a in live}
+          assert 'experiment-065-recovery-DP-cell-3-chunk-1' in names, 'reconstructed cell3/chunk1 missing'
+          assert len(names)==246, f'unexpected live recovery artifact count: {len(names)}'
+          PY
+      - name: Download preserved canonical evidence bundle
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 33295661114
+          name: experiment-065-canonical-preserved-bundle
+          path: results/experiment_065_canonical_downloads
+      - name: Download completed recovery artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 33285145875
+          pattern: experiment-065-recovery-*
+          path: results/experiment_065_recovery_downloads
+          merge-multiple: false
+      - name: Reconstruct exact development evidence
+        run: python scripts/merge_experiment_065_recovery.py --canonical-root results/experiment_065_canonical_downloads --recovery-root results/experiment_065_recovery_downloads --manifest evaluation_requests/experiment_065_recovery.request.json --out results/experiment_065_development_evidence
+      - name: Assert exact closure before preservation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('results/experiment_065_development_evidence/development_report.json')
+          r=json.loads(p.read_text())
+          assert r['experiment']==65 and r['phase']=='development'
+          assert r['integrity_pass'] is True
+          assert r['DP']['cell_count']==16
+          assert r['DP']['paired_draws']==32000
+          assert r['DP']['subset_M0_of_A0'] is True
+          assert r['validation_seeds_touched'] is False
+          assert r['no_tuning'] is True
+          PY
+      - name: Preserve closed development evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-065-development-recovered-evidence
+          path: results/experiment_065_development_evidence/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
