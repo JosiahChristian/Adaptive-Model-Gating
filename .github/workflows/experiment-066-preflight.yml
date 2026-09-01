@@ -1,0 +1,36 @@
+name: Experiment 066 Prospective Preflight
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_066_preflight.request.json
+permissions:
+  contents: read
+  issues: write
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile frozen implementation
+        run: python -m compileall -q src/experiment_066.py scripts/preflight_experiment_066.py
+      - name: Enforce prospective request identity
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evaluation_requests/experiment_066_preflight.request.json').read_text())
+          assert r == {
+            'experiment': 66,
+            'operative_spec_issue': 269,
+            'provenance_closure_issue': 270,
+            'preflight_only': True,
+            'reserved_outcomes_authorized': False,
+            'validation_seeds_touched': False,
+            'no_tuning': True
+          }
+          PY
+      - name: Run nonreserved prospective smoke
+        run: python scripts/preflight_experiment_066.py
