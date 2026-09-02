@@ -1,0 +1,15 @@
+{
+  "experiment": 66,
+  "operative_spec_issue": 269,
+  "provenance_closure_issue": 270,
+  "execution_closure_issue": 272,
+  "execution_recovery_issue": 273,
+  "canonical_run_id": 33531109410,
+  "canonical_head_sha": "655f5cb085fdb9a230afac4ad3de8dc07c4c9b44",
+  "frozen_artifact_count": 187,
+  "frozen_preserved_dp_count": 181,
+  "frozen_missing_dp_count": 59,
+  "recovery_half_size": 25,
+  "validation_seeds_touched": false,
+  "no_tuning": true
+}
