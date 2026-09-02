@@ -1,0 +1,122 @@
+name: Experiment 066 Batch 0 Targeted Recovery
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_066_batch0_recovery.request.json
+permissions:
+  contents: read
+  actions: read
+  issues: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      missing_count: ${{ steps.plan.outputs.missing_count }}
+      recovery_job_count: ${{ steps.plan.outputs.recovery_job_count }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin frozen Experiment 066 implementation
+        run: |
+          test "$(git hash-object src/experiment_066.py)" = '5c5d70fc59510129cdd87e181500febdbc359fb2'
+          test "$(git hash-object scripts/run_experiment_066_development_shard.py)" = 'f82f01ba245f1e6e05e23181e1146c9a2d3c127c'
+          test "$(git hash-object scripts/run_experiment_066_recovery_subshard.py)" = 'd7a253df99c3b779eb00a3f65edf9013e5ac70b4'
+          python -m compileall -q src/experiment_066.py scripts/run_experiment_066_development_shard.py scripts/run_experiment_066_recovery_subshard.py
+      - name: Enforce frozen recovery request and inventory names only
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, re, urllib.request
+          from pathlib import Path
+
+          request=json.loads(Path('evaluation_requests/experiment_066_batch0_recovery.request.json').read_text())
+          expected_request={
+            'experiment':66,
+            'operative_spec_issue':269,
+            'provenance_closure_issue':270,
+            'execution_closure_issue':272,
+            'execution_recovery_issue':273,
+            'canonical_run_id':33531109410,
+            'canonical_head_sha':'655f5cb085fdb9a230afac4ad3de8dc07c4c9b44',
+            'frozen_artifact_count':187,
+            'frozen_preserved_dp_count':181,
+            'frozen_missing_dp_count':59,
+            'recovery_half_size':25,
+            'validation_seeds_touched':False,
+            'no_tuning':True
+          }
+          assert request==expected_request, request
+
+          repo='JosiahChristian/Adaptive-Model-Gating'
+          run_id=request['canonical_run_id']
+          headers={'Authorization':f'Bearer {os.environ["GH_TOKEN"]}','Accept':'application/vnd.github+json'}
+          run_req=urllib.request.Request(f'https://api.github.com/repos/{repo}/actions/runs/{run_id}',headers=headers)
+          run=json.load(urllib.request.urlopen(run_req))
+          assert run['status']=='completed' and run['conclusion']=='cancelled'
+          assert run['head_sha']==request['canonical_head_sha']
+
+          names=[]
+          total=None
+          page=1
+          while True:
+            req=urllib.request.Request(f'https://api.github.com/repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100&page={page}',headers=headers)
+            data=json.load(urllib.request.urlopen(req))
+            if total is None: total=int(data['total_count'])
+            names.extend(a['name'] for a in data['artifacts'] if not a['expired'])
+            if len(data['artifacts'])<100: break
+            page+=1
+          assert total==request['frozen_artifact_count']==187, (total,len(names))
+          assert len(names)==187 and len(set(names))==187
+          for panel in ('DQ1','DQ2','DQ3','DQ4','DQ5','DQ6'):
+            assert names.count(f'experiment-066-development-{panel}')==1, panel
+
+          pat=re.compile(r'^experiment-066-development-DP-cell-(\d+)-chunk-(\d+)$')
+          observed=[]
+          for name in names:
+            m=pat.match(name)
+            if m:
+              c,k=map(int,m.groups())
+              assert 0<=c<6 and 0<=k<40, name
+              observed.append((c,k))
+          assert len(observed)==request['frozen_preserved_dp_count']==181
+          assert len(set(observed))==181
+          expected={(c,k) for c in range(6) for k in range(40)}
+          missing=sorted(expected-set(observed))
+          assert len(missing)==request['frozen_missing_dp_count']==59
+          include=[{'cell':c,'chunk':k,'half':h} for c,k in missing for h in (0,1)]
+          assert len(include)==118
+          matrix={'include':include}
+          with open('/tmp/matrix.json','w') as f: json.dump(matrix,f,separators=(',',':'))
+          with open('/tmp/missing_count.txt','w') as f: f.write(str(len(missing)))
+          with open('/tmp/recovery_job_count.txt','w') as f: f.write(str(len(include)))
+          print(f'preserved_dp={len(observed)} missing_dp={len(missing)} recovery_jobs={len(include)}; artifact names only; no scientific contents inspected')
+          PY
+          echo "matrix=$(cat /tmp/matrix.json)" >> "$GITHUB_OUTPUT"
+          echo "missing_count=$(cat /tmp/missing_count.txt)" >> "$GITHUB_OUTPUT"
+          echo "recovery_job_count=$(cat /tmp/recovery_job_count.txt)" >> "$GITHUB_OUTPUT"
+  recover:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 32
+      matrix: ${{ fromJSON(needs.validate.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Recover one exact missing 25-seed interval
+        run: python scripts/run_experiment_066_recovery_subshard.py --cell-index ${{ matrix.cell }} --chunk-index ${{ matrix.chunk }} --half-index ${{ matrix.half }} --out results/experiment_066_recovery/DP-cell-${{ matrix.cell }}-chunk-${{ matrix.chunk }}-half-${{ matrix.half }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-066-recovery-DP-cell-${{ matrix.cell }}-chunk-${{ matrix.chunk }}-half-${{ matrix.half }}
+          path: results/experiment_066_recovery/DP-cell-${{ matrix.cell }}-chunk-${{ matrix.chunk }}-half-${{ matrix.half }}/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
