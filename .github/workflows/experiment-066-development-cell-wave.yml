@@ -1,0 +1,103 @@
+name: Experiment 066 Development Cell Wave
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_066_development_cell_wave.request.json
+permissions:
+  contents: read
+  issues: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      dp_matrix: ${{ steps.matrix.outputs.dp_matrix }}
+      cell: ${{ steps.request.outputs.cell }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin frozen Experiment 066 implementation
+        run: |
+          test "$(git hash-object src/experiment_066.py)" = '5c5d70fc59510129cdd87e181500febdbc359fb2'
+          test "$(git hash-object scripts/run_experiment_066_development_shard.py)" = 'f82f01ba245f1e6e05e23181e1146c9a2d3c127c'
+          python -m compileall -q src/experiment_066.py scripts/run_experiment_066_development_shard.py
+      - id: request
+        name: Enforce prospective cell-wave request
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evaluation_requests/experiment_066_development_cell_wave.request.json').read_text())
+          assert r['experiment']==66
+          assert r['operative_spec_issue']==269
+          assert r['provenance_closure_issue']==270
+          assert r['execution_closure_issue']==272
+          assert r['scheduling_closure_issue']==274
+          assert r['wave_order']==[6,7,8,9,10,11,12,13,14,15]
+          assert r['cell'] in r['wave_order']
+          assert r['dp_chunk_count']==40
+          assert r['dp_shard_n']==50
+          assert r['max_parallel']==20
+          assert r['source_blob']=='5c5d70fc59510129cdd87e181500febdbc359fb2'
+          assert r['runner_blob']=='f82f01ba245f1e6e05e23181e1146c9a2d3c127c'
+          assert r['reserved_development_authorized'] is True
+          assert r['validation_seeds_touched'] is False
+          assert r['no_tuning'] is True
+          print(f"cell={r['cell']}")
+          PY
+      - name: Nonreserved provenance smoke
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0,'src')
+          import experiment_061 as e61
+          import experiment_066 as e66
+          from experiment_051 import CELLS
+          seed=90002003; c=CELLS[6]
+          stream=e61.generate_experiment_061_stream(seed,c)
+          _,a0,_,_,path,_,_,_,_,scores=e61.infer_confirmation_agreement_061(stream)
+          cand=path[0]['candidate']; conf=path[0]['confirmation_candidate']
+          vals=tuple(float(x) for row in path for x in row['pairwise_responses'])
+          w,ranks=e61.base.signed_rank_statistic_30(vals)
+          assert len(vals)==30 and w==path[-1]['wplus'] and tuple(ranks)==tuple(path[-1]['ranks'])
+          rebuilt=max(e66.CANDIDATE_ORDER,key=lambda h:(float(scores[h]),-e66.CANDIDATE_ORDER.index(h)))
+          assert rebuilt==conf and int(w>=345 and conf==cand)==int(a0)
+          m=e66.primary_m1(seed,c,cand)
+          assert len(m['replicas'])==5 and all(r['discovery_used'] is False for r in m['replicas'])
+          print('nonreserved provenance smoke passed; no reserved outcomes executed')
+          PY
+      - id: matrix
+        name: Freeze one-cell 40-chunk matrix mechanically
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          cell=int(os.environ['CELL'])
+          include=[{'cell':cell,'chunk':k} for k in range(40)]
+          assert len(include)==40 and [x['chunk'] for x in include]==list(range(40))
+          print('dp_matrix='+json.dumps({'include':include},separators=(',',':')))
+          PY
+        env:
+          CELL: ${{ steps.request.outputs.cell }}
+
+  dp:
+    needs: validate
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.validate.outputs.dp_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Evaluate frozen primary shard
+        run: python scripts/run_experiment_066_development_shard.py --cell-index ${{ matrix.cell }} --chunk-index ${{ matrix.chunk }} --out results/dp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-066-development-DP-cell-${{ matrix.cell }}-chunk-${{ matrix.chunk }}
+          path: results/dp/
+          if-no-files-found: error
+          retention-days: 30
