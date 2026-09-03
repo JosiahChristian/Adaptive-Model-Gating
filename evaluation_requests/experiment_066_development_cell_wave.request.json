@@ -1,0 +1,17 @@
+{
+  "experiment": 66,
+  "operative_spec_issue": 269,
+  "provenance_closure_issue": 270,
+  "execution_closure_issue": 272,
+  "scheduling_closure_issue": 274,
+  "wave_order": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+  "cell": 6,
+  "dp_chunk_count": 40,
+  "dp_shard_n": 50,
+  "max_parallel": 20,
+  "source_blob": "5c5d70fc59510129cdd87e181500febdbc359fb2",
+  "runner_blob": "f82f01ba245f1e6e05e23181e1146c9a2d3c127c",
+  "reserved_development_authorized": true,
+  "validation_seeds_touched": false,
+  "no_tuning": true
+}
