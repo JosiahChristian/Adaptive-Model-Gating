@@ -1,0 +1,12 @@
+{
+  "experiment": 67,
+  "operative_spec_issue": 279,
+  "provenance_closure_issue": 280,
+  "preflight_only": true,
+  "source_blob": "c3536a15c6d4a30414a4c63853caf723130e42af",
+  "preflight_blob": "e10e9b9d419efdb09a68b6a6b3649449d0ccfde1",
+  "reserved_outcomes_authorized": false,
+  "rq_seeds_touched": false,
+  "experiment_066_validation_touched": false,
+  "no_tuning": true
+}
