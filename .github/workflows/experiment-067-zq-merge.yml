@@ -1,0 +1,70 @@
+name: Experiment 067 ZQ Evidence Merge
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_067_zq_merge.request.json
+permissions:
+  actions: read
+  contents: read
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pin frozen merge implementation and request
+        run: |
+          test "$(git hash-object scripts/merge_experiment_067_zq.py)" = "398d2af360f311639d209302fee09d00af48b6a1"
+          python - <<'PY'
+          import json
+          q=json.load(open('evaluation_requests/experiment_067_zq_merge.request.json'))
+          expected={'experiment':67,'operative_spec_issue':279,'provenance_closure_issue':280,'preflight_issue':281,'execution_closure_issue':282,'evidence_closure_issue':283,'source_run_id':34053232491,'expected_artifacts':24,'expected_source_rows':24000,'merge_blob':'398d2af360f311639d209302fee09d00af48b6a1','interpret_only_after_preservation':True,'rq_seeds_touched':False,'experiment_066_validation_touched':False,'no_tuning':True}
+          assert q==expected,(q,expected)
+          PY
+      - name: Inventory and download exact frozen ZQ artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p inputs
+          python - <<'PY'
+          import json,os,re,subprocess,zipfile
+          from pathlib import Path
+          import urllib.request
+          run=34053232491
+          req=urllib.request.Request(f'https://api.github.com/repos/${{ github.repository }}/actions/runs/{run}/artifacts?per_page=100',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+          data=json.load(urllib.request.urlopen(req))
+          arts=[a for a in data['artifacts'] if not a['expired']]
+          pat=re.compile(r'^experiment-067-ZQ-(ZQ[1-6])-shard-([0-3])$')
+          selected={}
+          for a in arts:
+            m=pat.match(a['name'])
+            if not m: continue
+            key=(m.group(1),int(m.group(2)))
+            if key in selected: raise SystemExit(f'duplicate artifact {key}')
+            selected[key]=a
+          expected={(f'ZQ{i}',k) for i in range(1,7) for k in range(4)}
+          if set(selected)!=expected: raise SystemExit(f'artifact coordinate mismatch missing={sorted(expected-set(selected))} extra={sorted(set(selected)-expected)}')
+          manifest=[]
+          for key,a in sorted(selected.items()):
+            z=Path('inputs')/(a['name']+'.zip')
+            subprocess.run(['curl','-fsSL','-H','Authorization: Bearer '+os.environ['GH_TOKEN'],'-H','Accept: application/vnd.github+json',a['archive_download_url'],'-o',str(z)],check=True)
+            d=Path('inputs')/a['name']; d.mkdir()
+            with zipfile.ZipFile(z) as f: f.extractall(d)
+            z.unlink()
+            manifest.append({'name':a['name'],'id':a['id'],'digest':a.get('digest'),'workflow_run_id':run})
+          Path('download_manifest.json').write_text(json.dumps(manifest,indent=2))
+          print('Exact 24-artifact Experiment 067 ZQ inventory downloaded; scientific rows not printed')
+          PY
+      - name: Reconstruct integrity and frozen diagnostic summaries
+        run: python scripts/merge_experiment_067_zq.py --input inputs --out merged
+      - name: Preserve merged evidence before interpretation
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-067-zq-merged-preserved-evidence
+          path: |
+            merged/
+            download_manifest.json
+            evaluation_requests/experiment_067_zq_merge.request.json
+          retention-days: 30
