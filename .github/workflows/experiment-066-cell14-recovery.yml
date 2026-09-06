@@ -1,0 +1,92 @@
+name: Experiment 066 Cell 14 Targeted Recovery
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_066_cell14_recovery.request.json
+permissions:
+  contents: read
+  actions: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin frozen Experiment 066 implementation
+        run: |
+          test "$(git hash-object src/experiment_066.py)" = '5c5d70fc59510129cdd87e181500febdbc359fb2'
+          test "$(git hash-object scripts/run_experiment_066_development_shard.py)" = 'f82f01ba245f1e6e05e23181e1146c9a2d3c127c'
+          test "$(git hash-object scripts/run_experiment_066_cellwave_recovery_subshard.py)" = '03919fc5907ae6ed37cb472d60b3569f1f44eb3c'
+          python -m compileall -q src/experiment_066.py scripts/run_experiment_066_development_shard.py scripts/run_experiment_066_cellwave_recovery_subshard.py
+      - name: Enforce targeted recovery request and canonical inventory names only
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, re, urllib.request
+          from pathlib import Path
+          request=json.loads(Path('evaluation_requests/experiment_066_cell14_recovery.request.json').read_text())
+          expected={
+            'experiment':66,
+            'operative_spec_issue':269,
+            'provenance_closure_issue':270,
+            'execution_closure_issue':272,
+            'scheduling_closure_issue':274,
+            'execution_recovery_issue':276,
+            'canonical_run_id':33997473495,
+            'canonical_head_sha':'783fc824bce7a899bd9b375abbfe6c62b99f6e6d',
+            'cell':14,
+            'missing_chunk':1,
+            'frozen_preserved_artifact_count':39,
+            'recovery_half_size':25,
+            'validation_seeds_touched':False,
+            'no_tuning':True
+          }
+          assert request==expected, request
+          repo='JosiahChristian/Adaptive-Model-Gating'
+          headers={'Authorization':f'Bearer {os.environ["GH_TOKEN"]}','Accept':'application/vnd.github+json'}
+          run=json.load(urllib.request.urlopen(urllib.request.Request(f'https://api.github.com/repos/{repo}/actions/runs/{request["canonical_run_id"]}',headers=headers)))
+          assert run['status']=='completed' and run['conclusion']=='failure'
+          assert run['head_sha']==request['canonical_head_sha']
+          data=json.load(urllib.request.urlopen(urllib.request.Request(f'https://api.github.com/repos/{repo}/actions/runs/{request["canonical_run_id"]}/artifacts?per_page=100',headers=headers)))
+          arts=[a for a in data['artifacts'] if not a['expired']]
+          assert data['total_count']==39 and len(arts)==39
+          pat=re.compile(r'^experiment-066-development-DP-cell-14-chunk-(\d+)$')
+          chunks=[]
+          for a in arts:
+            m=pat.match(a['name'])
+            assert m, a['name']
+            chunks.append(int(m.group(1)))
+          assert len(set(chunks))==39
+          assert sorted(set(range(40))-set(chunks))==[1]
+          matrix={'include':[{'half':0},{'half':1}]}
+          Path('/tmp/matrix.json').write_text(json.dumps(matrix,separators=(',',':')))
+          print('canonical cell14 artifacts=39; only chunk1 missing; names only; no scientific contents inspected')
+          PY
+          echo "matrix=$(cat /tmp/matrix.json)" >> "$GITHUB_OUTPUT"
+  recover:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.validate.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Recover one exact missing 25-seed interval
+        run: python scripts/run_experiment_066_cellwave_recovery_subshard.py --half-index ${{ matrix.half }} --out results/experiment_066_cell14_recovery/half-${{ matrix.half }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-066-recovery-DP-cell-14-chunk-1-half-${{ matrix.half }}
+          path: results/experiment_066_cell14_recovery/half-${{ matrix.half }}/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
