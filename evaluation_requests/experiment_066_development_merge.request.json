@@ -5,6 +5,7 @@
   "execution_closure_issue": 272,
   "scheduling_closure_issue": 274,
   "ingestion_closure_issue": 275,
+  "ingestion_amendment_issue": 277,
   "batch0_recovery_issue": 273,
   "cell14_recovery_issue": 276,
   "canonical_batch0_run_id": 33531109410,
@@ -12,7 +13,7 @@
   "cell14_canonical_run_id": 33997473495,
   "cell14_recovery_run_id": 34020239803,
   "cell15_run_id": 34027615920,
-  "normalizer_blob": "PENDING_CELL14_RECOVERY_AWARE_UPDATE",
+  "normalizer_blob": "09476176d35b7e9270a53acbd1976eb9a2a5ee78",
   "merge_blob": "7751207d92274e4cd94c4ddd83acd402e5f8d97a",
   "validation_seeds_touched": false,
   "no_tuning": true
