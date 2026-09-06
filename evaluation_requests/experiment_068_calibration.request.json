@@ -1,0 +1,17 @@
+{
+  "experiment": 68,
+  "operative_spec_issue": 287,
+  "provenance_closure_issue": 288,
+  "execution_closure_issue": 289,
+  "preflight_run_id": 34060698481,
+  "source_blob": "e7e1c6973db82c91d4eb391138f54a2aba283951",
+  "runner_blob": "1d33bfa96bd3acc088f8757d4efa09f171092013",
+  "panels": ["CQ1","CQ2","CQ3","CQ4","CQ5","CQ6"],
+  "shard_n": 500,
+  "shards_per_panel": 16,
+  "cq_only": true,
+  "xq_touched": false,
+  "experiment_067_rq_touched": false,
+  "experiment_066_validation_touched": false,
+  "no_tuning": true
+}
