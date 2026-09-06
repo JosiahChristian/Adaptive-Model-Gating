@@ -8,5 +8,6 @@
   "reserved_outcomes_authorized": false,
   "rq_seeds_touched": false,
   "experiment_066_validation_touched": false,
-  "no_tuning": true
+  "no_tuning": true,
+  "launch": 1
 }
