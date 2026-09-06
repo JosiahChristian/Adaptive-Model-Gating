@@ -1,0 +1,46 @@
+name: Experiment 068 Prospective Preflight
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_068_preflight.request.json
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned statistical dependency
+        run: python -m pip install --disable-pip-version-check scipy==1.17.0
+      - name: Pin prospective implementation and request
+        run: |
+          test "$(git hash-object src/experiment_068.py)" = "e7e1c6973db82c91d4eb391138f54a2aba283951"
+          test "$(git hash-object scripts/preflight_experiment_068.py)" = "5f49095d8b3aa271d006c00c01169ac676ca82ec"
+          python - <<'PY'
+          import json
+          q=json.load(open('evaluation_requests/experiment_068_preflight.request.json'))
+          expected={
+            'experiment':68,
+            'operative_spec_issue':287,
+            'provenance_closure_issue':288,
+            'source_blob':'e7e1c6973db82c91d4eb391138f54a2aba283951',
+            'preflight_blob':'5f49095d8b3aa271d006c00c01169ac676ca82ec',
+            'scipy_version':'1.17.0',
+            'nonreserved_smoke_only':True,
+            'cq_outcomes_touched':False,
+            'xq_outcomes_touched':False,
+            'experiment_067_rq_touched':False,
+            'experiment_066_validation_touched':False,
+            'no_tuning':True,
+          }
+          assert q==expected,(q,expected)
+          PY
+      - name: Compile prospective implementation
+        run: python -m py_compile src/experiment_068.py scripts/preflight_experiment_068.py
+      - name: Run nonreserved prospective preflight
+        env:
+          PYTHONPATH: src
+        run: python scripts/preflight_experiment_068.py
