@@ -8,11 +8,11 @@ PANELS={f'ZQ{i}':(6700000+(i-1)*4000,6700000+i*4000) for i in range(1,7)}
 STRIDE=10_000_000
 
 def cand_from_scores(scores):
-    return min(CANDS,key=lambda c:(float(scores[c]),CANDS.index(c)))
+    return max(CANDS,key=lambda c:(float(scores[c]),-CANDS.index(c)))
 
 def tied(scores):
     vals=[float(scores[c]) for c in CANDS]
-    m=min(vals)
+    m=max(vals)
     return sum(abs(v-m)<=1e-12 for v in vals)>1
 
 def cramers_v(xs,ys):
@@ -92,7 +92,7 @@ def main():
         'score_difference_summaries':{f'{x}-{y}':{'mean':stats(v)['mean'],'sd':stats(v)['sd']} for (x,y),v in diffs.items()}}
       report['source_rows']+=4000; merged+=rows
     if report['source_rows']!=24000: raise AssertionError('total_n')
-    (out/'integrity_report.json').write_text(json.dumps({'integrity_pass':True,'coordinates':24,'source_rows':24000,'five_replicas_per_source':True,'rq_seeds_touched':False,'experiment_066_validation_touched':False,'schema_repair_issue':284},indent=2))
+    (out/'integrity_report.json').write_text(json.dumps({'integrity_pass':True,'coordinates':24,'source_rows':24000,'five_replicas_per_source':True,'rq_seeds_touched':False,'experiment_066_validation_touched':False,'schema_repair_issue':284,'topology_repair_issue':285},indent=2))
     (out/'diagnostic_report.json').write_text(json.dumps(report,indent=2))
     with (out/'merged_rows.jsonl').open('w') as f:
       for r in merged: f.write(json.dumps(r,separators=(',',':'))+'\n')
