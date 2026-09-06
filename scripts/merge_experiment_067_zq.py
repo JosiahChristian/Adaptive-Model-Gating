@@ -67,10 +67,10 @@ def main():
         labels=[]
         for j,rep in enumerate(reps,1):
           if int(rep.get('replica_index'))!=j or int(rep.get('replica_seed'))!=int(r['seed'])+STRIDE*j or rep.get('discovery_used') is not False: raise AssertionError('replica_identity')
-          scores=rep.get('confirmation_topology_scores',{})
+          scores=rep.get('confirmation_scores',{})
           if set(scores)!=set(CANDS): raise AssertionError('score_keys')
           cc=cand_from_scores(scores)
-          if rep.get('confirmation_candidate')!=cc or bool(rep.get('confirmation_topology_tie'))!=tied(scores): raise AssertionError('topology_reconstruction')
+          if rep.get('confirmation_candidate')!=cc or bool(rep.get('topology_tie_flag'))!=tied(scores): raise AssertionError('topology_reconstruction')
           labels.append(cc); rep_labels[j-1].append(cc); tie_n+=int(tied(scores))
           for c in CANDS: scorevals[c].append(float(scores[c]))
           for x,y in diffs: diffs[(x,y)].append(float(scores[x])-float(scores[y]))
@@ -92,7 +92,7 @@ def main():
         'score_difference_summaries':{f'{x}-{y}':{'mean':stats(v)['mean'],'sd':stats(v)['sd']} for (x,y),v in diffs.items()}}
       report['source_rows']+=4000; merged+=rows
     if report['source_rows']!=24000: raise AssertionError('total_n')
-    (out/'integrity_report.json').write_text(json.dumps({'integrity_pass':True,'coordinates':24,'source_rows':24000,'five_replicas_per_source':True,'rq_seeds_touched':False,'experiment_066_validation_touched':False},indent=2))
+    (out/'integrity_report.json').write_text(json.dumps({'integrity_pass':True,'coordinates':24,'source_rows':24000,'five_replicas_per_source':True,'rq_seeds_touched':False,'experiment_066_validation_touched':False,'schema_repair_issue':284},indent=2))
     (out/'diagnostic_report.json').write_text(json.dumps(report,indent=2))
     with (out/'merged_rows.jsonl').open('w') as f:
       for r in merged: f.write(json.dumps(r,separators=(',',':'))+'\n')
