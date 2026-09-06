@@ -14,13 +14,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Pin frozen merge implementation and request
+      - name: Pin frozen schema-repaired merge implementation and request
         run: |
-          test "$(git hash-object scripts/merge_experiment_067_zq.py)" = "398d2af360f311639d209302fee09d00af48b6a1"
+          test "$(git hash-object scripts/merge_experiment_067_zq.py)" = "fa9841ce39d3a48b692d6efeb41c163f546bd09e"
           python - <<'PY'
           import json
           q=json.load(open('evaluation_requests/experiment_067_zq_merge.request.json'))
-          expected={'experiment':67,'operative_spec_issue':279,'provenance_closure_issue':280,'preflight_issue':281,'execution_closure_issue':282,'evidence_closure_issue':283,'source_run_id':34053232491,'expected_artifacts':24,'expected_source_rows':24000,'merge_blob':'398d2af360f311639d209302fee09d00af48b6a1','interpret_only_after_preservation':True,'rq_seeds_touched':False,'experiment_066_validation_touched':False,'no_tuning':True}
+          expected={'experiment':67,'operative_spec_issue':279,'provenance_closure_issue':280,'preflight_issue':281,'execution_closure_issue':282,'evidence_closure_issue':283,'schema_repair_issue':284,'source_run_id':34053232491,'expected_artifacts':24,'expected_source_rows':24000,'merge_blob':'fa9841ce39d3a48b692d6efeb41c163f546bd09e','interpret_only_after_preservation':True,'rq_seeds_touched':False,'experiment_066_validation_touched':False,'no_tuning':True}
           assert q==expected,(q,expected)
           PY
       - name: Inventory and download exact frozen ZQ artifacts
