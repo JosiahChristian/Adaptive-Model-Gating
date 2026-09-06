@@ -1,0 +1,116 @@
+name: Experiment 066 Development Evidence Merge
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_066_development_merge.request.json
+permissions:
+  contents: read
+  actions: read
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin frozen evidence and scientific merge code
+        run: |
+          test "$(git hash-object scripts/normalize_experiment_066_development_inputs_v2.py)" = '09476176d35b7e9270a53acbd1976eb9a2a5ee78'
+          test "$(git hash-object scripts/merge_experiment_066_development.py)" = '7751207d92274e4cd94c4ddd83acd402e5f8d97a'
+          test "$(git hash-object src/experiment_066.py)" = '5c5d70fc59510129cdd87e181500febdbc359fb2'
+          python -m compileall -q scripts/normalize_experiment_066_development_inputs_v2.py scripts/merge_experiment_066_development.py src/experiment_066.py
+      - name: Enforce frozen merge request
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('evaluation_requests/experiment_066_development_merge.request.json').read_text())
+          assert r['experiment']==66 and r['operative_spec_issue']==269 and r['provenance_closure_issue']==270
+          assert r['execution_closure_issue']==272 and r['scheduling_closure_issue']==274
+          assert r['ingestion_closure_issue']==275 and r['ingestion_amendment_issue']==277
+          assert r['batch0_recovery_issue']==273 and r['cell14_recovery_issue']==276
+          assert r['canonical_batch0_run_id']==33531109410 and r['batch0_recovery_run_id']==33676255544
+          assert r['cell14_canonical_run_id']==33997473495 and r['cell14_recovery_run_id']==34020239803
+          assert r['cell15_run_id']==34027615920
+          assert r['normalizer_blob']=='09476176d35b7e9270a53acbd1976eb9a2a5ee78'
+          assert r['merge_blob']=='7751207d92274e4cd94c4ddd83acd402e5f8d97a'
+          assert r['validation_seeds_touched'] is False and r['no_tuning'] is True
+          print('frozen merge request identity pass')
+          PY
+      - name: Inventory and download exact unexpired development evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json,os,re,subprocess,zipfile
+          from pathlib import Path
+          import urllib.request
+          repo='JosiahChristian/Adaptive-Model-Gating'; token=os.environ['GH_TOKEN']
+          headers={'Authorization':f'Bearer {token}','Accept':'application/vnd.github+json'}
+          arts=[]; page=1
+          while True:
+            u=f'https://api.github.com/repos/{repo}/actions/artifacts?per_page=100&page={page}'
+            d=json.load(urllib.request.urlopen(urllib.request.Request(u,headers=headers)))
+            batch=d['artifacts']; arts.extend(batch)
+            if len(batch)<100: break
+            page+=1
+          live=[a for a in arts if not a['expired']]
+          by={}
+          for a in live: by.setdefault(a['name'],[]).append(a)
+          dq=[f'experiment-066-development-DQ{i}' for i in range(1,7)]
+          cp=re.compile(r'^experiment-066-development-DP-cell-(\d+)-chunk-(\d+)$')
+          rp=re.compile(r'^experiment-066-recovery-DP-cell-(\d+)-chunk-(\d+)-half-([01])$')
+          canonical={}; recovery={}
+          for name,v in by.items():
+            m=cp.match(name)
+            if m: canonical[(int(m.group(1)),int(m.group(2)))]=v
+            m=rp.match(name)
+            if m: recovery[(int(m.group(1)),int(m.group(2)),int(m.group(3)))]=v
+          selected=[]
+          for name in dq:
+            assert len(by.get(name,[]))==1,f'dq_artifact_identity:{name}:{len(by.get(name,[]))}'
+            selected+=by[name]
+          recovery_coords=[]
+          for c in range(16):
+            for k in range(40):
+              cv=canonical.get((c,k),[]); hv=[recovery.get((c,k,h),[]) for h in (0,1)]
+              assert len(cv)<=1 and all(len(x)<=1 for x in hv),f'duplicate_artifact_name:{c}:{k}'
+              if cv:
+                assert not any(hv),f'canonical_recovery_overlap:{c}:{k}'
+                selected+=cv
+              else:
+                assert all(len(x)==1 for x in hv),f'missing_coordinate:{c}:{k}'
+                selected+=hv[0]+hv[1]; recovery_coords.append([c,k])
+          assert len(selected)==706,(len(selected),recovery_coords)
+          assert len(recovery_coords)==60,recovery_coords
+          assert [14,1] in recovery_coords
+          root=Path('downloaded'); root.mkdir()
+          manifest=[]
+          for i,a in enumerate(selected):
+            dest=root/f'a{i:04d}'; dest.mkdir(); z=dest/'artifact.zip'
+            url=f'https://api.github.com/repos/{repo}/actions/artifacts/{a["id"]}/zip'
+            subprocess.run(['curl','-fsSL','-H',f'Authorization: Bearer {token}','-H','Accept: application/vnd.github+json',url,'-o',str(z)],check=True)
+            with zipfile.ZipFile(z) as q: q.extractall(dest)
+            z.unlink()
+            manifest.append({'name':a['name'],'artifact_id':a['id'],'digest':a.get('digest'),'workflow_run_id':a.get('workflow_run',{}).get('id')})
+          Path('download_manifest.json').write_text(json.dumps({'artifact_count':len(selected),'recovery_coordinate_count':len(recovery_coords),'recovery_coordinates':recovery_coords,'artifacts':manifest},indent=2))
+          print(f'downloaded {len(selected)} exact unexpired evidence artifacts; recovery coordinates={len(recovery_coords)}; names/provenance only')
+          PY
+      - name: Normalize recovery-aware evidence without scientific interpretation
+        run: python scripts/normalize_experiment_066_development_inputs_v2.py --root downloaded --out normalized
+      - name: Reconstruct frozen development gate without printing outcomes
+        run: python scripts/merge_experiment_066_development.py --root normalized --out merged
+      - name: Preserve merged evidence before interpretation
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-066-development-merged-preserved-evidence
+          path: |
+            normalized/
+            merged/
+            download_manifest.json
+            evaluation_requests/experiment_066_development_merge.request.json
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
