@@ -6,13 +6,13 @@
   "execution_closure_issue": 282,
   "evidence_closure_issue": 283,
   "schema_repair_issue": 284,
+  "topology_repair_issue": 285,
   "source_run_id": 34053232491,
   "expected_artifacts": 24,
   "expected_source_rows": 24000,
-  "merge_blob": "fa9841ce39d3a48b692d6efeb41c163f546bd09e",
+  "merge_blob": "4846bbac4edd87f8646f2ee12027d94093e498ad",
   "interpret_only_after_preservation": true,
   "rq_seeds_touched": false,
   "experiment_066_validation_touched": false,
   "no_tuning": true
 }
-
