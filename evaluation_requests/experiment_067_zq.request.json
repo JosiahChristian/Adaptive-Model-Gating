@@ -1,0 +1,16 @@
+{
+  "experiment": 67,
+  "operative_spec_issue": 279,
+  "provenance_closure_issue": 280,
+  "preflight_issue": 281,
+  "execution_closure_issue": 282,
+  "panels": ["ZQ1","ZQ2","ZQ3","ZQ4","ZQ5","ZQ6"],
+  "shard_count": 4,
+  "shard_n": 1000,
+  "source_blob": "c3536a15c6d4a30414a4c63853caf723130e42af",
+  "runner_blob": "a6c1c72d035a7657917d88155914a28037d3e215",
+  "zq_execution_authorized": true,
+  "rq_seeds_touched": false,
+  "experiment_066_validation_touched": false,
+  "no_tuning": true
+}
