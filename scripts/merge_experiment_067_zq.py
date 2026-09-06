@@ -13,7 +13,7 @@ def cand_from_scores(scores):
 def tied(scores):
     vals=[float(scores[c]) for c in CANDS]
     m=max(vals)
-    return sum(abs(v-m)<=1e-12 for v in vals)>1
+    return sum(int(v == m) for v in vals)>1
 
 def cramers_v(xs,ys):
     n=len(xs); table=[[0]*3 for _ in range(3)]
@@ -61,7 +61,7 @@ def main():
       source_pool=[[0]*3 for _ in range(3)]; source_match={c:[0,0] for c in CANDS}; unanim=0
       for r in rows:
         if r.get('panel')!=panel: raise AssertionError('panel_identity')
-        if r.get('source_candidate') not in CANDS: raise AssertionError('source_candidate')
+        if r.get('source_candidate') != CANDS[(int(r['seed'])-start)%len(CANDS)]: raise AssertionError('source_candidate_cycle')
         reps=r.get('replicas',[])
         if len(reps)!=5: raise AssertionError('replica_count')
         labels=[]
@@ -92,7 +92,7 @@ def main():
         'score_difference_summaries':{f'{x}-{y}':{'mean':stats(v)['mean'],'sd':stats(v)['sd']} for (x,y),v in diffs.items()}}
       report['source_rows']+=4000; merged+=rows
     if report['source_rows']!=24000: raise AssertionError('total_n')
-    (out/'integrity_report.json').write_text(json.dumps({'integrity_pass':True,'coordinates':24,'source_rows':24000,'five_replicas_per_source':True,'rq_seeds_touched':False,'experiment_066_validation_touched':False,'schema_repair_issue':284,'topology_repair_issue':285},indent=2))
+    (out/'integrity_report.json').write_text(json.dumps({'integrity_pass':True,'coordinates':24,'source_rows':24000,'five_replicas_per_source':True,'source_candidate_cycle_verified':True,'rq_seeds_touched':False,'experiment_066_validation_touched':False,'schema_repair_issue':284,'topology_repair_issue':285},indent=2))
     (out/'diagnostic_report.json').write_text(json.dumps(report,indent=2))
     with (out/'merged_rows.jsonl').open('w') as f:
       for r in merged: f.write(json.dumps(r,separators=(',',':'))+'\n')
