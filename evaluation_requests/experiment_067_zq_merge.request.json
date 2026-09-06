@@ -1,0 +1,16 @@
+{
+  "experiment": 67,
+  "operative_spec_issue": 279,
+  "provenance_closure_issue": 280,
+  "preflight_issue": 281,
+  "execution_closure_issue": 282,
+  "evidence_closure_issue": 283,
+  "source_run_id": 34053232491,
+  "expected_artifacts": 24,
+  "expected_source_rows": 24000,
+  "merge_blob": "398d2af360f311639d209302fee09d00af48b6a1",
+  "interpret_only_after_preservation": true,
+  "rq_seeds_touched": false,
+  "experiment_066_validation_touched": false,
+  "no_tuning": true
+}
