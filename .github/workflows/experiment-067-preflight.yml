@@ -1,0 +1,42 @@
+name: Experiment 067 Prospective Preflight
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_067_preflight.request.json
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin frozen Experiment 067 implementation
+        run: |
+          test "$(git hash-object src/experiment_061.py)" = '4ab7d0343cf1f59db35a8d398c918825a4b72619'
+          test "$(git hash-object src/experiment_064.py)" = '644820c99d57c14b73808be6977c49a25bd1d0cd'
+          test "$(git hash-object src/experiment_066.py)" = '5c5d70fc59510129cdd87e181500febdbc359fb2'
+          test "$(git hash-object src/experiment_067.py)" = 'c3536a15c6d4a30414a4c63853caf723130e42af'
+          test "$(git hash-object scripts/preflight_experiment_067.py)" = 'e10e9b9d419efdb09a68b6a6b3649449d0ccfde1'
+          python -m compileall -q src/experiment_067.py scripts/preflight_experiment_067.py
+      - name: Enforce prospective request identity
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('evaluation_requests/experiment_067_preflight.request.json').read_text())
+          assert q['experiment']==67
+          assert q['operative_spec_issue']==279
+          assert q['provenance_closure_issue']==280
+          assert q['preflight_only'] is True
+          assert q['source_blob']=='c3536a15c6d4a30414a4c63853caf723130e42af'
+          assert q['preflight_blob']=='e10e9b9d419efdb09a68b6a6b3649449d0ccfde1'
+          assert q['reserved_outcomes_authorized'] is False
+          assert q['rq_seeds_touched'] is False
+          assert q['experiment_066_validation_touched'] is False
+          assert q['no_tuning'] is True
+          PY
+      - name: Nonreserved prospective mechanics smoke
+        run: python scripts/preflight_experiment_067.py
