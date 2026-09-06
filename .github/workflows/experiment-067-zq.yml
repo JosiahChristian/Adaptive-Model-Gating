@@ -1,0 +1,64 @@
+name: Experiment 067 ZQ Diagnostics
+on:
+  push:
+    paths:
+      - evaluation_requests/experiment_067_zq.request.json
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin frozen Experiment 067 implementation
+        run: |
+          test "$(git hash-object src/experiment_061.py)" = '4ab7d0343cf1f59db35a8d398c918825a4b72619'
+          test "$(git hash-object src/experiment_064.py)" = '644820c99d57c14b73808be6977c49a25bd1d0cd'
+          test "$(git hash-object src/experiment_067.py)" = 'c3536a15c6d4a30414a4c63853caf723130e42af'
+          test "$(git hash-object scripts/run_experiment_067_zq_shard.py)" = 'a6c1c72d035a7657917d88155914a28037d3e215'
+          python -m compileall -q src/experiment_067.py scripts/run_experiment_067_zq_shard.py
+      - name: Enforce frozen request and matrix
+        id: plan
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('evaluation_requests/experiment_067_zq.request.json').read_text())
+          assert q['experiment']==67 and q['operative_spec_issue']==279 and q['provenance_closure_issue']==280
+          assert q['preflight_issue']==281 and q['execution_closure_issue']==282
+          assert q['panels']==['ZQ1','ZQ2','ZQ3','ZQ4','ZQ5','ZQ6']
+          assert q['shard_count']==4 and q['shard_n']==1000
+          assert q['source_blob']=='c3536a15c6d4a30414a4c63853caf723130e42af'
+          assert q['runner_blob']=='a6c1c72d035a7657917d88155914a28037d3e215'
+          assert q['zq_execution_authorized'] is True and q['rq_seeds_touched'] is False and q['experiment_066_validation_touched'] is False and q['no_tuning'] is True
+          matrix={'include':[{'panel':p,'shard':k} for p in q['panels'] for k in range(4)]}
+          Path('/tmp/matrix.json').write_text(json.dumps(matrix,separators=(',',':')))
+          PY
+          echo "matrix=$(cat /tmp/matrix.json)" >> "$GITHUB_OUTPUT"
+  zq:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix: ${{ fromJSON(needs.validate.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Evaluate frozen diagnostic shard
+        run: python scripts/run_experiment_067_zq_shard.py --panel ${{ matrix.panel }} --shard-index ${{ matrix.shard }} --out results/experiment_067/${{ matrix.panel }}/shard-${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-067-ZQ-${{ matrix.panel }}-shard-${{ matrix.shard }}
+          path: results/experiment_067/${{ matrix.panel }}/shard-${{ matrix.shard }}/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
