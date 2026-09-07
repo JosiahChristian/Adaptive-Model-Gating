@@ -1,0 +1,17 @@
+{
+  "experiment":69,
+  "operative_spec_issue":292,
+  "provenance_closure_issue":293,
+  "execution_closure_issue":294,
+  "preflight_run_id":34071437242,
+  "source_blob":"bdd5b0a2dd1c709baf87b615524d53aba812107c",
+  "runner_blob":"15f15b624b3515c349c7511728dce3dacc230a69",
+  "xq_shard_n":500,
+  "xq_shards_per_panel":16,
+  "primary_shard_n":50,
+  "primary_chunks_per_cell":80,
+  "primary_cells":16,
+  "experiment_067_rq_touched":false,
+  "experiment_066_validation_touched":false,
+  "no_tuning":true
+}
