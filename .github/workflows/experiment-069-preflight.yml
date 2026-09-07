@@ -1,0 +1,36 @@
+name: Experiment 069 Prospective Preflight
+on:
+  push:
+    paths:
+      - 'evaluation_requests/experiment_069_preflight.request.json'
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned statistical dependency
+        run: pip install 'scipy==1.17.0'
+      - name: Pin prospective implementation and request
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          r=json.load(open('evaluation_requests/experiment_069_preflight.request.json'))
+          assert r['experiment']==69 and r['operative_spec_issue']==292 and r['provenance_closure_issue']==293
+          assert r['source_blob']=='bdd5b0a2dd1c709baf87b615524d53aba812107c'
+          assert r['preflight_blob']=='4b5c9ac27331aa9f5f45989ce352d0b9a8aed611'
+          assert r['scipy_version']=='1.17.0' and not r['reserved_outcomes_allowed']
+          assert not r['xq_touched'] and not r['p069_touched'] and not r['experiment_067_rq_touched'] and not r['experiment_066_validation_touched'] and r['no_tuning']
+          def blob(path):
+            b=open(path,'rb').read(); h=hashlib.sha1(); h.update(f'blob {len(b)}\0'.encode()); h.update(b); return h.hexdigest()
+          assert blob('src/experiment_069.py')==r['source_blob']
+          assert blob('scripts/preflight_experiment_069.py')==r['preflight_blob']
+          PY
+      - name: Compile
+        run: python -m py_compile src/experiment_069.py scripts/preflight_experiment_069.py
+      - name: Run nonreserved prospective smoke
+        run: python scripts/preflight_experiment_069.py
