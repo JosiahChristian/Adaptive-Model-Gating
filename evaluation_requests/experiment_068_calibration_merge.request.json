@@ -1,0 +1,17 @@
+{
+  "experiment": 68,
+  "operative_spec_issue": 287,
+  "provenance_closure_issue": 288,
+  "execution_closure_issue": 289,
+  "evidence_closure_issue": 290,
+  "source_run_id": 34064843727,
+  "expected_artifacts": 96,
+  "expected_source_rows": 48000,
+  "merge_blob": "a9f8fe898886b3a4e7d41f75de0080016235c0fc",
+  "scipy_version": "1.17.0",
+  "interpret_only_after_preservation": true,
+  "xq_touched": false,
+  "experiment_067_rq_touched": false,
+  "experiment_066_validation_touched": false,
+  "no_tuning": true
+}
