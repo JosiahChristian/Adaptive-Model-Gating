@@ -1,0 +1,14 @@
+{
+  "experiment": 69,
+  "operative_spec_issue": 292,
+  "provenance_closure_issue": 293,
+  "source_blob": "bdd5b0a2dd1c709baf87b615524d53aba812107c",
+  "preflight_blob": "4b5c9ac27331aa9f5f45989ce352d0b9a8aed611",
+  "scipy_version": "1.17.0",
+  "reserved_outcomes_allowed": false,
+  "xq_touched": false,
+  "p069_touched": false,
+  "experiment_067_rq_touched": false,
+  "experiment_066_validation_touched": false,
+  "no_tuning": true
+}
