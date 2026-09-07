@@ -1,0 +1,14 @@
+{
+  "experiment":69,
+  "operative_spec_issue":292,
+  "provenance_closure_issue":293,
+  "execution_closure_issue":294,
+  "recovery_issue":295,
+  "canonical_run_id":34076192111,
+  "wave":0,
+  "cells":[0,1,2],
+  "chunks_per_cell":80,
+  "runner_blob":"15f15b624b3515c349c7511728dce3dacc230a69",
+  "xq_rerun":false,
+  "no_tuning":true
+}
