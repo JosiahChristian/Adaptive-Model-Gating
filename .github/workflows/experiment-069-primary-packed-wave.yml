@@ -1,0 +1,52 @@
+name: Experiment 069 Primary Packed Recovery Wave
+on:
+  push:
+    paths: ['evaluation_requests/experiment_069_primary_packed_wave.request.json']
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      cells: ${{ steps.plan.outputs.cells }}
+      wave: ${{ steps.plan.outputs.wave }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        name: Validate frozen packed recovery request
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import hashlib,json
+          r=json.load(open('evaluation_requests/experiment_069_primary_packed_wave.request.json'))
+          expected={1:[3,4,5],2:[6,7,8],3:[9,10,11],4:[12,13,14],5:[15]}
+          assert (r['experiment'],r['operative_spec_issue'],r['provenance_closure_issue'],r['execution_closure_issue'],r['recovery_issue'],r['packaging_amendment_issue'])==(69,292,293,294,295,296)
+          assert r['canonical_run_id']==34076192111 and r['wave'] in expected and r['cells']==expected[r['wave']]
+          assert (r['blocks_per_cell'],r['chunks_per_block'],r['scientific_chunks_per_cell'])==(8,10,80)
+          assert r['base_runner_blob']=='15f15b624b3515c349c7511728dce3dacc230a69' and r['packed_runner_blob']=='c166735d8b177b36d8baee992aa49b552f19d68a'
+          assert not r['xq_rerun'] and not r['wave0_rerun'] and r['no_tuning']
+          def blob(p):
+            b=open(p,'rb').read(); h=hashlib.sha1(); h.update(f'blob {len(b)}\0'.encode()); h.update(b); return h.hexdigest()
+          assert blob('scripts/run_experiment_069_shard.py')==r['base_runner_blob']
+          assert blob('scripts/run_experiment_069_primary_block.py')==r['packed_runner_blob']
+          print('cells='+json.dumps(r['cells'],separators=(',',':')))
+          print('wave='+str(r['wave']))
+          PY
+  primary:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        cell: ${{ fromJSON(needs.plan.outputs.cells) }}
+        block: [0,1,2,3,4,5,6,7]
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run packed unchanged primary coordinates
+        run: python scripts/run_experiment_069_primary_block.py --cell-index '${{ matrix.cell }}' --block '${{ matrix.block }}' --out evidence
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-069-P069-cell-${{ matrix.cell }}-block-${{ matrix.block }}
+          path: evidence/
+          retention-days: 30
