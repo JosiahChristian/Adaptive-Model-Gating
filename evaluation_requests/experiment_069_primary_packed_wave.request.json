@@ -1,0 +1,19 @@
+{
+  "experiment":69,
+  "operative_spec_issue":292,
+  "provenance_closure_issue":293,
+  "execution_closure_issue":294,
+  "recovery_issue":295,
+  "packaging_amendment_issue":296,
+  "canonical_run_id":34076192111,
+  "wave":1,
+  "cells":[3,4,5],
+  "blocks_per_cell":8,
+  "chunks_per_block":10,
+  "scientific_chunks_per_cell":80,
+  "base_runner_blob":"15f15b624b3515c349c7511728dce3dacc230a69",
+  "packed_runner_blob":"c166735d8b177b36d8baee992aa49b552f19d68a",
+  "xq_rerun":false,
+  "wave0_rerun":false,
+  "no_tuning":true
+}
