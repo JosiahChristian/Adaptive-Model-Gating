@@ -7,8 +7,8 @@
   "packaging_amendment_issue":296,
   "pair_recovery_issue":297,
   "remaining_execution_issue":298,
-  "wave":4,
-  "cells":[12,13,14],
+  "wave":5,
+  "cells":[15],
   "pairs_per_cell":40,
   "chunks_per_pair":2,
   "scientific_chunks_per_cell":80,
@@ -19,5 +19,6 @@
   "wave1_rerun":false,
   "wave2_rerun":false,
   "wave3_rerun":false,
+  "wave4_rerun":false,
   "no_tuning":true
 }
