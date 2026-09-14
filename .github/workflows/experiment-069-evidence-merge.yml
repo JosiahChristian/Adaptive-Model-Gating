@@ -1,0 +1,103 @@
+name: Experiment 069 Evidence Merge and Preservation
+on:
+  push:
+    paths:
+      - 'evaluation_requests/experiment_069_evidence_merge.request.json'
+permissions:
+  actions: read
+  contents: read
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned statistical dependency
+        run: pip install scipy==1.17.0
+      - name: Pin frozen merge implementation and request
+        run: |
+          test "$(git hash-object scripts/merge_experiment_069_evidence.py)" = "8a66650809db75bb08e031ebb5cc83e69f83e3ce"
+          test "$(git hash-object src/experiment_069.py)" = "bdd5b0a2dd1c709baf87b615524d53aba812107c"
+          python - <<'PY'
+          import json
+          q=json.load(open('evaluation_requests/experiment_069_evidence_merge.request.json'))
+          expected={
+            'experiment':69,'operative_spec_issue':292,'provenance_closure_issue':293,'execution_closure_issue':294,
+            'recovery_issue':295,'packaging_amendment_issue':296,'pair_recovery_issue':297,'remaining_execution_issue':298,
+            'evidence_closure_issue':299,
+            'xq_run_id':34076192111,'wave0_run_id':34079840673,'wave1_run_id':34303997747,'wave2_run_id':34473502901,
+            'wave3_run_id':34637724138,'wave4_run_id':34733402615,'wave5_run_id':34844196939,
+            'expected_xq_artifacts':96,'expected_wave0_artifacts':240,'expected_pair_artifacts':520,'expected_physical_artifacts':856,
+            'expected_xq_coordinates':96,'expected_primary_coordinates':1280,'expected_xq_rows':48000,'expected_primary_rows':64000,
+            'merge_blob':'8a66650809db75bb08e031ebb5cc83e69f83e3ce','source_blob':'bdd5b0a2dd1c709baf87b615524d53aba812107c',
+            'scipy_version':'1.17.0','interpret_only_after_preservation':True,'experiment_067_rq_touched':False,
+            'experiment_066_validation_touched':False,'no_tuning':True}
+          assert q==expected,(q,expected)
+          PY
+      - name: Inventory and download exact frozen Experiment 069 evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p inputs
+          python - <<'PY'
+          import json,os,re,subprocess,zipfile
+          from pathlib import Path
+          import urllib.request
+          repo='${{ github.repository }}'; token=os.environ['GH_TOKEN']
+          headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'}
+          runs={
+            'xq':34076192111,'wave0':34079840673,'wave1':34303997747,'wave2':34473502901,
+            'wave3':34637724138,'wave4':34733402615,'wave5':34844196939}
+          expected={}
+          for p in range(1,7):
+            for s in range(16): expected[('xq',f'experiment-069-XQ-XQ{p}-shard-{s}')]=None
+          for c in range(3):
+            for k in range(80): expected[('wave0',f'experiment-069-P069-cell-{c}-chunk-{k}')]=None
+          for wave,cells in [('wave1',range(3,6)),('wave2',range(6,9)),('wave3',range(9,12)),('wave4',range(12,15)),('wave5',range(15,16))]:
+            for c in cells:
+              for pair in range(40): expected[(wave,f'experiment-069-P069-cell-{c}-pair-{pair}')]=None
+          selected=[]
+          for label,run in runs.items():
+            arts=[]; page=1
+            while True:
+              u=f'https://api.github.com/repos/{repo}/actions/runs/{run}/artifacts?per_page=100&page={page}'
+              d=json.load(urllib.request.urlopen(urllib.request.Request(u,headers=headers)))
+              batch=d['artifacts']; arts.extend(batch)
+              if len(batch)<100: break
+              page+=1
+            live=[a for a in arts if not a['expired']]
+            by={}
+            for a in live:
+              if a['name'] in by: raise SystemExit(f'duplicate artifact name in run {run}: {a["name"]}')
+              by[a['name']]=a
+            names={name for (lab,name) in expected if lab==label}
+            if set(by)!=names:
+              raise SystemExit(f'{label} artifact identity mismatch missing={sorted(names-set(by))[:20]} extra={sorted(set(by)-names)[:20]} counts={len(by)}/{len(names)}')
+            for name in sorted(names): selected.append((label,run,by[name]))
+          if len(selected)!=856: raise SystemExit(f'physical artifact count {len(selected)}')
+          manifest=[]
+          for i,(label,run,a) in enumerate(selected):
+            dest=Path('inputs')/f'a{i:04d}'; dest.mkdir(); z=dest/'artifact.zip'
+            subprocess.run(['curl','-fsSL','-H','Authorization: Bearer '+token,'-H','Accept: application/vnd.github+json',a['archive_download_url'],'-o',str(z)],check=True)
+            with zipfile.ZipFile(z) as q:q.extractall(dest)
+            z.unlink()
+            manifest.append({'source':label,'name':a['name'],'artifact_id':a['id'],'digest':a.get('digest'),'workflow_run_id':run})
+          Path('download_manifest.json').write_text(json.dumps({'artifact_count':len(selected),'artifacts':manifest},indent=2))
+          print('Exact 856-artifact Experiment 069 inventory downloaded; scientific rows not printed')
+          PY
+      - name: Reconstruct integrity and frozen statistical report
+        run: python scripts/merge_experiment_069_evidence.py --input inputs --out merged
+      - name: Preserve merged evidence before interpretation
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-069-merged-preserved-evidence
+          path: |
+            merged/
+            download_manifest.json
+            evaluation_requests/experiment_069_evidence_merge.request.json
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
