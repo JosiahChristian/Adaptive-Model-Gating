@@ -1,0 +1,21 @@
+name: Experiment 070 Preflight
+on:
+  push:
+    paths:
+      - '.github/workflows/experiment-070-preflight.yml'
+      - 'scripts/preflight_experiment_070.py'
+      - 'src/experiment_070.py'
+  workflow_dispatch:
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile Experiment 070
+        run: python -m py_compile src/experiment_070.py scripts/preflight_experiment_070.py
+      - name: Nonreserved preflight
+        run: python scripts/preflight_experiment_070.py
