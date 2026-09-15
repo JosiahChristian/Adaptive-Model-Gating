@@ -1,0 +1,38 @@
+name: Experiment 070 Development Wave
+on:
+  push:
+    paths:
+      - '.github/workflows/experiment-070-development-wave.yml'
+  workflow_dispatch:
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      cells: ${{ steps.p.outputs.cells }}
+    steps:
+      - id: p
+        run: echo 'cells=[0,1,2]' >> "$GITHUB_OUTPUT"
+  develop:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        cell: ${{ fromJSON(needs.plan.outputs.cells) }}
+        pair: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run frozen pair
+        run: python scripts/run_experiment_070_development_pair.py --cell-index ${{ matrix.cell }} --pair ${{ matrix.pair }} --out evidence
+      - name: Preserve pair evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-070-D070-cell-${{ matrix.cell }}-pair-${{ matrix.pair }}
+          path: evidence
+          if-no-files-found: error
+          retention-days: 90
