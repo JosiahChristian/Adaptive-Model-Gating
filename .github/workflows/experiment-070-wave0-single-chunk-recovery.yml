@@ -1,0 +1,27 @@
+name: Experiment 070 Wave 0 Single-Chunk Recovery
+on:
+  push:
+    paths:
+      - '.github/workflows/experiment-070-wave0-single-chunk-recovery.yml'
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [40, 41]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Recover frozen original coordinate
+        run: python scripts/run_experiment_070_development_shard.py --cell-index 2 --chunk ${{ matrix.chunk }} --out evidence
+      - name: Preserve recovered coordinate
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-070-D070-cell-2-chunk-${{ matrix.chunk }}-recovery
+          path: evidence
+          if-no-files-found: error
+          retention-days: 90
