@@ -11,7 +11,7 @@ jobs:
       cells: ${{ steps.p.outputs.cells }}
     steps:
       - id: p
-        run: echo 'cells=[0,1,2]' >> "$GITHUB_OUTPUT"
+        run: echo 'cells=[3,4,5]' >> "$GITHUB_OUTPUT"
   develop:
     needs: plan
     runs-on: ubuntu-latest
