@@ -1,0 +1,23 @@
+{
+  "experiment": 70,
+  "operative_spec_issue": 301,
+  "provenance_closure_issue": 302,
+  "execution_closure_issue": 303,
+  "correction_issue": 308,
+  "evidence_closure_issue": 309,
+  "wave0_run_id": 34947830444,
+  "wave0_recovery_run_id": 35152453539,
+  "wave1_run_id": 35166420265,
+  "wave1_recovery_run_id": 35344992921,
+  "wave2_run_id": 35367080925,
+  "wave2_recovery_run_id": 35485375125,
+  "wave3_run_id": 35492840768,
+  "expected_physical_artifacts": 484,
+  "expected_original_coordinates": 960,
+  "expected_rows": 48000,
+  "merge_blob": "4a85bf30d577c6da7b3e1285f72b266733dd41e7",
+  "source_blob": "0ea70d1547b18f7b7b25c443eb43387fea25507a",
+  "interpret_only_after_preservation": true,
+  "validation_touched": false,
+  "no_tuning": true
+}
