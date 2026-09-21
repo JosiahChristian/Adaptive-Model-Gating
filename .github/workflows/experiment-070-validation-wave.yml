@@ -1,0 +1,44 @@
+name: Experiment 070 Validation Wave
+on:
+  push:
+    paths:
+      - '.github/workflows/experiment-070-validation-wave.yml'
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      cells: ${{ steps.p.outputs.cells }}
+    steps:
+      - id: p
+        run: echo 'cells=[0,1,2]' >> "$GITHUB_OUTPUT"
+  validate:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        cell: ${{ fromJSON(needs.plan.outputs.cells) }}
+        pair: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pin frozen validation science and runners
+        run: |
+          test "$(git hash-object src/experiment_070.py)" = "0ea70d1547b18f7b7b25c443eb43387fea25507a"
+          test "$(git hash-object scripts/run_experiment_070_validation_shard.py)" = "1cbd0ccc4e961445971540ed450df0fe63df5f45"
+          test "$(git hash-object scripts/run_experiment_070_validation_pair.py)" = "bc0b64d6946bc67d71595c6fe3cb661f12ae9a46"
+      - name: Run frozen validation pair
+        run: python scripts/run_experiment_070_validation_pair.py --cell-index ${{ matrix.cell }} --pair ${{ matrix.pair }} --out evidence
+      - name: Preserve original validation coordinates
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-070-V070-cell-${{ matrix.cell }}-pair-${{ matrix.pair }}
+          path: evidence
+          if-no-files-found: error
+          retention-days: 90
