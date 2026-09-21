@@ -1,0 +1,33 @@
+name: Experiment 070 Validation Nonreserved Preflight
+on:
+  push:
+    paths:
+      - '.github/workflows/experiment-070-validation-preflight.yml'
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pin frozen source and validation runners
+        run: |
+          test "$(git hash-object src/experiment_070.py)" = "0ea70d1547b18f7b7b25c443eb43387fea25507a"
+          test "$(git hash-object scripts/run_experiment_070_validation_shard.py)" = "1cbd0ccc4e961445971540ed450df0fe63df5f45"
+          test "$(git hash-object scripts/run_experiment_070_validation_pair.py)" = "bc0b64d6946bc67d71595c6fe3cb661f12ae9a46"
+      - name: Compile and check metadata only; DO NOT evaluate reserved seeds
+        run: |
+          python -m py_compile scripts/run_experiment_070_validation_shard.py scripts/run_experiment_070_validation_pair.py
+          PYTHONPATH=src python - <<'PY'
+          import experiment_070 as e
+          assert e.provenance_integrity()
+          assert len(e.CELLS)==12
+          assert e.DEVELOPMENT_RANGE==(7000000,7004000)
+          assert e.VALIDATION_RANGE==(7004000,7008000)
+          assert e.REPLICA_COUNT==5 and e.REPLICA_SEED_STRIDE==10000000
+          assert e.PRECISION_TARGET==.99 and e.WRONG_ACCEPT_WILSON_TARGET==.01 and e.COVERAGE_TARGET==.90
+          print('Nonreserved validation mechanics preflight passed; no validation seeds evaluated')
+          PY
