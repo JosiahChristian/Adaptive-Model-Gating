@@ -1,0 +1,50 @@
+name: Experiment 070 Validation Wave 2 Missing-Chunk Recovery
+on:
+  push:
+    paths:
+      - '.github/workflows/experiment-070-validation-wave2-recovery.yml'
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        include:
+          - { cell: 6, chunk: 26 }
+          - { cell: 6, chunk: 27 }
+          - { cell: 6, chunk: 40 }
+          - { cell: 6, chunk: 41 }
+          - { cell: 7, chunk: 0 }
+          - { cell: 7, chunk: 1 }
+          - { cell: 8, chunk: 30 }
+          - { cell: 8, chunk: 31 }
+          - { cell: 8, chunk: 38 }
+          - { cell: 8, chunk: 39 }
+          - { cell: 8, chunk: 58 }
+          - { cell: 8, chunk: 59 }
+          - { cell: 8, chunk: 62 }
+          - { cell: 8, chunk: 63 }
+          - { cell: 8, chunk: 72 }
+          - { cell: 8, chunk: 73 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify pinned science and validation shard
+        run: |
+          test "$(git hash-object src/experiment_070.py)" = "0ea70d1547b18f7b7b25c443eb43387fea25507a"
+          test "$(git hash-object scripts/run_experiment_070_validation_shard.py)" = "1cbd0ccc4e961445971540ed450df0fe63df5f45"
+      - name: Recover only missing original coordinate
+        run: python scripts/run_experiment_070_validation_shard.py --cell-index ${{ matrix.cell }} --chunk ${{ matrix.chunk }} --out evidence
+      - name: Preserve original coordinate
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-070-V070-cell-${{ matrix.cell }}-chunk-${{ matrix.chunk }}-wave2-recovery
+          path: evidence
+          if-no-files-found: error
+          retention-days: 90
