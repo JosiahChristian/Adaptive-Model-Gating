@@ -1,0 +1,88 @@
+name: Experiment 070 Reserved Validation Evidence Merge and Preservation
+on:
+  push:
+    paths:
+      - 'evaluation_requests/experiment_070_validation_evidence_merge.request.json'
+permissions:
+  actions: read
+  contents: read
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pin frozen source, shard, merger and exact request
+        run: |
+          test "$(git hash-object src/experiment_070.py)" = "0ea70d1547b18f7b7b25c443eb43387fea25507a"
+          test "$(git hash-object scripts/run_experiment_070_validation_shard.py)" = "1cbd0ccc4e961445971540ed450df0fe63df5f45"
+          test "$(git hash-object scripts/merge_experiment_070_validation_evidence.py)" = "86c81db3c52610994204651937cbd05717532aea"
+          python - <<'PY'
+          import json
+          q=json.load(open('evaluation_requests/experiment_070_validation_evidence_merge.request.json'))
+          assert q=={'experiment':70,'role':'reserved_validation','operative_spec_issue':301,'provenance_closure_issue':302,'development_gate_issue':310,'validation_execution_issue':311,'evidence_freeze_issue':314,'wave0_run_id':35631374066,'wave0_recovery_run_id':35813306897,'wave1_run_id':35834274308,'wave2_run_id':36052704035,'wave2_recovery_run_id':36228355377,'wave3_run_id':36247000724,'expected_physical_artifacts':490,'expected_original_coordinates':960,'expected_rows':48000,'merge_blob':'86c81db3c52610994204651937cbd05717532aea','source_blob':'0ea70d1547b18f7b7b25c443eb43387fea25507a','validation_shard_blob':'1cbd0ccc4e961445971540ed450df0fe63df5f45','interpret_only_after_preservation':True,'no_tuning':True,'development_rerun':False}
+          PY
+      - name: Download exact authoritative artifact inventory without outcome inspection
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p inputs
+          python - <<'PY'
+          import json,os,subprocess,urllib.request,zipfile
+          from pathlib import Path
+          repo='${{ github.repository }}';token=os.environ['GH_TOKEN']
+          headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'}
+          runs={'wave0':35631374066,'wave0recovery':35813306897,'wave1':35834274308,'wave2':36052704035,'wave2recovery':36228355377,'wave3':36247000724}
+          missing0={(0,9),(2,11)}
+          missing2={(6,13),(6,20),(7,0),(8,15),(8,19),(8,29),(8,31),(8,36)}
+          expected={}
+          for label,cells,excluded in [('wave0',range(0,3),missing0),('wave1',range(3,6),set()),('wave2',range(6,9),missing2),('wave3',range(9,12),set())]:
+              expected[label]={f'experiment-070-V070-cell-{c}-pair-{p}' for c in cells for p in range(40) if (c,p) not in excluded}
+          expected['wave0recovery']={f'experiment-070-V070-cell-{c}-chunk-{k}-wave0-recovery' for c,k in ((0,18),(0,19),(2,22),(2,23))}
+          expected['wave2recovery']={f'experiment-070-V070-cell-{c}-chunk-{k}-wave2-recovery' for c,k in ((6,26),(6,27),(6,40),(6,41),(7,0),(7,1),(8,30),(8,31),(8,38),(8,39),(8,58),(8,59),(8,62),(8,63),(8,72),(8,73))}
+          selected=[]
+          for label,run in runs.items():
+              arts=[];page=1
+              while True:
+                  url=f'https://api.github.com/repos/{repo}/actions/runs/{run}/artifacts?per_page=100&page={page}'
+                  with urllib.request.urlopen(urllib.request.Request(url,headers=headers)) as response:d=json.load(response)
+                  batch=d['artifacts'];arts.extend(batch)
+                  if len(batch)<100:break
+                  page+=1
+              by={}
+              for a in arts:
+                  if a['name'] in by:raise SystemExit('duplicate_artifact_name')
+                  by[a['name']]=a
+              if set(by)!=expected[label]:raise SystemExit(f'artifact_identity_mismatch {label} missing={sorted(expected[label]-set(by))} extra={sorted(set(by)-expected[label])}')
+              for name in sorted(expected[label]):
+                  a=by[name]
+                  if a['expired'] or not a.get('digest') or not a.get('size_in_bytes'):raise SystemExit('expired_unhashed_or_empty_artifact')
+                  selected.append((label,run,a))
+          if len(selected)!=490:raise SystemExit('physical_artifact_count')
+          manifest=[]
+          for i,(label,run,a) in enumerate(selected):
+              dest=Path('inputs')/f'a{i:04d}';dest.mkdir()
+              z=dest/'artifact.zip'
+              subprocess.run(['curl','-fsSL','--retry','3','-H','Authorization: Bearer '+token,'-H','Accept: application/vnd.github+json',a['archive_download_url'],'-o',str(z)],check=True)
+              with zipfile.ZipFile(z) as archive:archive.extractall(dest)
+              z.unlink()
+              manifest.append({'source':label,'name':a['name'],'artifact_id':a['id'],'digest':a['digest'],'size_in_bytes':a['size_in_bytes'],'workflow_run_id':run})
+          Path('download_manifest.json').write_text(json.dumps({'artifact_count':len(manifest),'artifacts':manifest},indent=2))
+          print('Exact 490-artifact inventory downloaded; scientific outcomes not printed')
+          PY
+      - name: Reconstruct exact validation integrity and frozen statistical report
+        run: python scripts/merge_experiment_070_validation_evidence.py --input inputs --out merged
+      - name: Preserve complete reserved validation evidence before interpretation
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-070-validation-merged-preserved-evidence
+          path: |
+            merged/
+            download_manifest.json
+            evaluation_requests/experiment_070_validation_evidence_merge.request.json
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 9
