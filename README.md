@@ -79,6 +79,10 @@ Each observation follows a test-then-train chronology:
 
 The independent experimental unit is the independently generated simulation seed/stream. Time steps within a stream are serially dependent and are not treated as independent replicates. Strategy comparisons are paired within the same generated stream.
 
+## Thread 1 scientific freeze
+
+The experimental record for **Thread 1 (Adaptation gating under drift/noise), Experiments 001–070, is frozen** under [scientific-freeze issue #316](https://github.com/JosiahChristian/Adaptive-Model-Gating/issues/316). Experiment 070 development and reserved validation are complete, with preserved evidence and simulator-scoped findings documented in [issue #315](https://github.com/JosiahChristian/Adaptive-Model-Gating/issues/315). The publication-readiness audit, independent academic review, and author-written manuscript remain separate outstanding work. This freeze does not assert universal safety or prohibit a newly justified, separately preregistered future study.
+
 ## Planned research sequence
 
 This repository begins the first of four planned research threads:
